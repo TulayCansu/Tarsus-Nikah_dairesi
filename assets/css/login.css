@@ -1,0 +1,55 @@
+:root{
+    --navy-900:#0e2a52; --navy-800:#153a6e; --blue-600:#1d5ec9;
+    --blue-500:#2f7bea; --card-bg:rgba(255,255,255,0.94);
+    --text-dark:#152238; --text-muted:#5c6b84; --border-soft:#e1e6ef;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:'Poppins', sans-serif; min-height:100vh; display:flex;
+    align-items:center; justify-content:center; position:relative;
+    background: linear-gradient(180deg, rgba(12,34,66,0.72) 0%, rgba(12,44,86,0.82) 55%, rgba(9,28,56,0.92) 100%), var(--navy-900);
+  }
+  .bg-photo{
+    position:fixed;
+    inset:0;
+    z-index:-1;
+    background-image:
+      linear-gradient(180deg, rgba(20,50,95,0.62) 0%, rgba(14,38,74,0.72) 55%, rgba(10,28,56,0.82) 100%),
+      url('../img/arkaplan.jpeg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+  
+  .login-wrapper{ width:100%; max-width:440px; padding:24px; display:flex; flex-direction:column; align-items:center; }
+  .card{
+    background:var(--card-bg); backdrop-filter:blur(6px); width:100%; border-radius:18px;
+    padding:44px 40px 36px; box-shadow:0 30px 60px -20px rgba(6,20,45,0.55);
+    display:flex; flex-direction:column; align-items:center; text-align:center;
+  }
+  .logo{ width:84px; height:84px; margin-bottom:14px; }
+  .org-name{ font-size:22px; font-weight:700; color:var(--navy-900); }
+  .org-sub{ font-size:14px; color:var(--text-muted); margin-top:4px; margin-bottom:22px; }
+  .welcome-block{ width:100%; text-align:left; margin-bottom:18px; }
+  .welcome-title{ font-size:19px; font-weight:600; color:var(--text-dark); margin-bottom:4px; }
+  .welcome-desc{ font-size:13.5px; color:var(--text-muted); }
+  .hata-mesaji{
+    width:100%; background:#fdecea; color:#c0392b; border:1px solid #f5c6c2;
+    border-radius:10px; padding:10px 14px; font-size:13.5px; margin-bottom:16px; text-align:left;
+  }
+  .field{ width:100%; margin-bottom:16px; }
+  .field input{
+    width:100%; padding:14px 16px; border:1.5px solid var(--border-soft); border-radius:11px;
+    font-family:inherit; font-size:14.5px; color:var(--text-dark); background:#fbfcfe; outline:none;
+  }
+  .field input:focus{ border-color:var(--blue-500); box-shadow:0 0 0 3px rgba(47,123,234,0.15); }
+  .row-between{ width:100%; display:flex; align-items:center; margin-bottom:20px; font-size:13.5px; }
+  .remember{ display:flex; align-items:center; gap:8px; color:var(--text-dark); cursor:pointer; }
+  .remember input{ width:16px; height:16px; accent-color:var(--blue-600); }
+  .btn-primary{
+    width:100%; padding:14px; border:none; border-radius:11px;
+    background:linear-gradient(90deg, var(--navy-800), var(--blue-500));
+    color:#fff; font-family:inherit; font-size:15px; font-weight:600; cursor:pointer;
+  }
+  .btn-primary:hover{ filter:brightness(1.08); }
+  .footer-note{ margin-top:22px; font-size:12px; color:#c9d3e6; text-align:center; }

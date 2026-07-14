@@ -1,0 +1,110 @@
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family:'Poppins', sans-serif;
+  background:#f4f6fa;
+  color:#1e2a3a;
+}
+
+.layout { display:flex; min-height:100vh; }
+
+/* SIDEBAR */
+.sidebar {
+  width:240px;
+  background:linear-gradient(180deg, #14325f 0%, #0e264a 100%);
+  color:#fff;
+  display:flex;
+  flex-direction:column;
+  padding:24px 16px;
+  position:fixed;
+  top:0; left:0; bottom:0;
+}
+.sidebar-logo { display:flex; align-items:center; gap:10px; margin-bottom:32px; padding:0 8px; }
+.sidebar-logo img { width:36px; height:36px; object-fit:contain; }
+.sidebar-logo span { font-weight:600; font-size:15px; }
+
+.sidebar-menu { display:flex; flex-direction:column; gap:4px; flex:1; }
+.sidebar-menu a {
+  display:flex; align-items:center; gap:10px;
+  color:#c7d3e8; text-decoration:none;
+  padding:11px 12px; border-radius:8px;
+  font-size:14px; font-weight:500;
+  transition:background .15s;
+}
+.sidebar-menu a:hover { background:rgba(255,255,255,0.08); color:#fff; }
+.sidebar-menu a.active { background:#2a5aa8; color:#fff; }
+.sidebar-menu .icon { font-size:16px; }
+
+.sidebar-user {
+  font-size:13px; color:#c7d3e8; padding:12px 12px;
+  border-top:1px solid rgba(255,255,255,0.1);
+  display:flex; flex-direction:column; gap:4px;
+}
+.rol-badge {
+  align-self:flex-start; background:rgba(255,255,255,0.12);
+  padding:2px 8px; border-radius:10px; font-size:11px; text-transform:capitalize;
+}
+
+.sidebar-logout {
+  display:flex; align-items:center; gap:10px;
+  color:#f3b7b7; text-decoration:none;
+  padding:11px 12px; border-radius:8px; font-size:14px; font-weight:500;
+  margin-top:8px;
+}
+.sidebar-logout:hover { background:rgba(255,255,255,0.08); }
+
+/* CONTENT */
+.content { margin-left:240px; padding:32px; flex:1; }
+
+.topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:28px; }
+.topbar h1 { font-size:22px; font-weight:600; }
+.topbar-user { font-size:14px; color:#5b6b85; }
+
+/* CARDS */
+.cards {
+  display:grid;
+  grid-template-columns:repeat(4, 1fr);
+  gap:18px;
+  margin-bottom:32px;
+}
+.card {
+  background:#fff;
+  border-radius:14px;
+  padding:20px;
+  box-shadow:0 2px 10px rgba(20,50,95,0.06);
+}
+.card-icon { font-size:22px; margin-bottom:10px; }
+.card-value { font-size:26px; font-weight:700; color:#14325f; }
+.card-label { font-size:13px; color:#6b7891; margin-top:4px; }
+
+/* TABLE */
+.table-section {
+  background:#fff;
+  border-radius:14px;
+  padding:24px;
+  box-shadow:0 2px 10px rgba(20,50,95,0.06);
+  overflow-x:auto;
+}
+.table-section h2 { font-size:16px; margin-bottom:16px; }
+.data-table { width:100%; border-collapse:collapse; }
+.data-table th {
+  text-align:left; font-size:12px; text-transform:uppercase;
+  color:#8894a8; padding:10px 12px; border-bottom:2px solid #eef1f6;
+  white-space:nowrap;
+}
+.data-table td { padding:12px; font-size:14px; border-bottom:1px solid #eef1f6; white-space:nowrap; }
+
+.badge { padding:4px 10px; border-radius:20px; font-size:12px; font-weight:600; }
+.badge-bekliyor { background:#fff3cd; color:#8a6d00; }
+.badge-tamamlandi { background:#d4f4dd; color:#1a7a3c; }
+.badge-iptal { background:#fbdada; color:#a02c2c; }
+.badge-ödenmedi { background:#fbdada; color:#a02c2c; }
+
+/* RESPONSIVE */
+@media (max-width:900px) {
+  .cards { grid-template-columns:repeat(2, 1fr); }
+}
+@media (max-width:600px) {
+  .sidebar { display:none; }
+  .content { margin-left:0; }
+  .cards { grid-template-columns:1fr; }
+}
