@@ -1,11 +1,6 @@
 <?php
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-session_start();
-if (!isset($_SESSION['personel_id'])) {
-    header('Location: ../../auth/login_view.php');
-    exit;
-}
+
+require_once './includes/auth.php';
 
 require_once '../../config/database.php'; // $pdo burada tanımlı olmalı
 
