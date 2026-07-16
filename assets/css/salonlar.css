@@ -1,0 +1,212 @@
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family:'Poppins', sans-serif;
+  background:#f4f6fa;
+  color:#1e2a3a;
+}
+
+.layout { display:flex; min-height:100vh; }
+
+/* SIDEBAR */
+.sidebar {
+  width:240px;
+  background:linear-gradient(180deg, #14325f 0%, #0e264a 100%);
+  color:#fff;
+  display:flex;
+  flex-direction:column;
+  padding:24px 16px;
+  position:fixed;
+  top:0; left:0; bottom:0;
+}
+.sidebar-logo { display:flex; align-items:center; gap:10px; margin-bottom:32px; padding:0 8px; }
+.sidebar-logo img { width:36px; height:36px; object-fit:contain; }
+.sidebar-logo span { font-weight:600; font-size:15px; }
+
+.sidebar-menu { display:flex; flex-direction:column; gap:4px; flex:1; }
+.sidebar-menu a {
+  display:flex; align-items:center; gap:10px;
+  color:#c7d3e8; text-decoration:none;
+  padding:11px 12px; border-radius:8px;
+  font-size:14px; font-weight:500;
+  transition:background .15s;
+}
+.sidebar-menu a:hover { background:rgba(255,255,255,0.08); color:#fff; }
+.sidebar-menu a.active { background:#2a5aa8; color:#fff; }
+.sidebar-menu .icon { font-size:16px; }
+
+.sidebar-user {
+  font-size:13px; color:#c7d3e8; padding:12px 12px;
+  border-top:1px solid rgba(255,255,255,0.1);
+  display:flex; flex-direction:column; gap:4px;
+}
+.rol-badge {
+  align-self:flex-start; background:rgba(255,255,255,0.12);
+  padding:2px 8px; border-radius:10px; font-size:11px; text-transform:capitalize;
+}
+
+.sidebar-logout {
+  display:flex; align-items:center; gap:10px;
+  color:#f3b7b7; text-decoration:none;
+  padding:11px 12px; border-radius:8px; font-size:14px; font-weight:500;
+  margin-top:8px;
+}
+.sidebar-logout:hover { background:rgba(255,255,255,0.08); }
+
+
+/* Ana İçerik Alanı Konumlandırması */
+.content-container {
+  flex: 1;
+  margin-left: 240px; /* Sidebar fixed olduğu için üst üste binmeyi engeller */
+  padding: 32px;
+  background: #f4f6fa;
+}
+
+/* Sayfa Başlığı Alanı */
+.content-header {
+  margin-bottom: 24px;
+}
+
+.content-header h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #0e264a;
+  margin-bottom: 6px;
+}
+
+.content-header p {
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* Tablo Kartı (Tabloyu saran beyaz alan) */
+.table-card {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+
+/* Tablo Yapısı */
+.salon-tablosu {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.salon-tablosu th {
+  background-color: #f8fafc;
+  color: #0e264a;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 16px 24px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.salon-tablosu td {
+  padding: 16px 24px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e2a3a;
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+/* Satır Üzerine Gelindiğinde Hafif Renk Değişimi */
+.salon-tablosu tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.salon-tablosu tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+/* Son satırın altındaki çizgiyi kaldır */
+.salon-tablosu tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Kalın Başlıklar */
+.salon-adi-td {
+  font-weight: 600;
+  color: #0e264a;
+}
+
+/* Kapasite Rozeti */
+.kapasite-badge {
+  font-size: 12px;
+  font-weight: 500;
+  color: #475569;
+  background: #f1f5f9;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+/* Durum Rozeti */
+.durum-rozet {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+  text-align: center;
+}
+
+.durum-aktif {
+  background-color: #ecfdf5;
+  color: #10b981;
+}
+
+.durum-pasif {
+  background-color: #fef2f2;
+  color: #ef4444;
+}
+
+/* Switch Toggle (Kayar Buton) Tasarımı */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 22px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #cbd5e1;
+  transition: 0.25s ease;
+  border-radius: 22px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #ffffff;
+  transition: 0.25s ease;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+/* Aktif konumdaki renk geçişleri */
+input:checked + .slider {
+  background-color: #10b981;
+}
+
+input:checked + .slider:before {
+  transform: translateX(22px);
+}
+
+/* Switch hover efekti */
+.switch:hover .slider {
+  filter: brightness(0.95);
+}
