@@ -13,7 +13,8 @@ if (!isset($_SESSION['personel_id'])) {
 }
 
 // Rol kontrol fonksiyonu
-function yetkiKontrol($izin_verilenler) {  //Sadece adminin erişebileceği sayfalar için
+
+function yetkiKontrol(array| string $izin_verilenler) {  //Sadece adminin erişebileceği sayfalar için
     if (!isset($_SESSION['rol'])) {
         yetkisizErisimYonlendir();
     }
