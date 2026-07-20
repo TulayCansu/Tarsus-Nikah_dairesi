@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     exit; 
 }
 
-//FİLTRELEME VE SIRALAMA PARAMETRELERİNE GÖRE VERİ ÇEKME
+//FİLTRELEME VE SIRALAMA PARAMETRELERİNE GÖRE VERİ ÇEKME    
 try {
     $arama = isset($_GET['ara']) ? trim($_GET['ara']) : '';
     $rol_filtre = isset($_GET['rol']) ? trim($_GET['rol']) : '';
