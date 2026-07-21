@@ -104,13 +104,13 @@ body {
 /* ANA GRID: SOL LİSTE + SAĞ FORM */
 .randevu-grid {
   display:grid;
-  grid-template-columns:1.6fr 1fr;
+  grid-template-columns:1fr;
   gap:20px;
   align-items:start;
 }
-@media (max-width:1100px) {
-  .randevu-grid { grid-template-columns:1fr; }
-}
+/* "Yeni Randevu Ekle" üstte, "Randevu Listesi" altta görünsün */
+#yeni-randevu { order:1; }
+.randevu-grid > .panel:not(#yeni-randevu) { order:2; }
 
 .panel {
   background:#fff;
@@ -118,6 +118,8 @@ body {
   box-shadow:0 2px 10px rgba(20,50,95,0.06);
   overflow:hidden;
 }
+/* Yeni randevu panelinde açılan takvim kutusu panel dışına taşabilmeli, kırpılmasın */
+#yeni-randevu { overflow:visible; }
 .panel-header {
   display:flex; justify-content:space-between; align-items:center;
   padding:20px 24px; border-bottom:1px solid #eef1f6;
@@ -258,6 +260,62 @@ body {
 @media (max-width:800px) {
   .detay-grid { grid-template-columns:1fr; }
 }
+
+.yas-uyari { display:block; margin-top:4px; font-size:11.5px; color:#c0392b; font-weight:600; }
+
+/* ÖZEL TAKVİM SEÇİCİ */
+.tarih-secici { position:relative; }
+.tarih-goster {
+  width:100%; padding:10px 36px 10px 12px; border:1px solid #e2e8f0; border-radius:8px;
+  font-size:13px; font-family:'Poppins', sans-serif; color:#1e2a3a; background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Crect x='3' y='4' width='18' height='18' rx='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E") no-repeat right 10px center;
+  cursor:pointer;
+}
+.tarih-goster:focus { outline:none; border-color:#2a5aa8; box-shadow:0 0 0 3px rgba(42,90,168,0.12); }
+
+.takvim-kutu {
+  position:absolute !important; z-index:999 !important; top:calc(100% + 8px) !important; right:0 !important; left:auto !important;
+  width:380px; max-width:90vw; background:#fff; border:1px solid #e2e8f0; border-radius:14px;
+  box-shadow:0 20px 44px rgba(15,23,42,0.22); padding:20px;
+}
+.takvim-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+.takvim-header span { font-size:16px; font-weight:600; color:#0e264a; text-transform:capitalize; }
+.takvim-nav {
+  width:34px; height:34px; border-radius:8px; border:none; background:#f1f5f9; color:#334155;
+  cursor:pointer; font-size:17px; display:flex; align-items:center; justify-content:center;
+}
+.takvim-nav:hover { background:#e2e8f0; }
+
+.takvim-gunler-satiri {
+  display:grid; grid-template-columns:repeat(7, 1fr);
+  font-size:13px; font-weight:600; color:#94a3b8; text-align:center; margin-bottom:8px;
+}
+.takvim-grid { display:grid; grid-template-columns:repeat(7, 1fr); gap:5px; }
+
+.takvim-gun {
+  aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+  font-size:15px; border-radius:9px; cursor:pointer; color:#1e2a3a; position:relative;
+  border:none; background:transparent; font-family:'Poppins', sans-serif; padding:2px 1px;
+}
+.takvim-gun .gun-no { line-height:1; }
+.takvim-gun:hover:not(.tatil):not(.pasif):not(.bos) { background:#eef2f9; }
+.takvim-gun.bos { visibility:hidden; cursor:default; }
+.takvim-gun.pasif { color:#cbd5e1; cursor:not-allowed; }
+.takvim-gun.tatil { background:#fef2f2; color:#c0392b; cursor:not-allowed; font-weight:600; }
+.takvim-gun.bugun { box-shadow:inset 0 0 0 1.5px #2a5aa8; }
+.takvim-gun.secili { background:#2a5aa8; color:#fff; font-weight:600; }
+.takvim-gun.secili .tatil-etiket { color:#fff; }
+
+.tatil-etiket {
+  font-size:7.5px; font-weight:500; line-height:1.1; color:#c0392b; opacity:0.85;
+  max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  padding:0 2px;
+}
+
+.takvim-lejant { display:flex; gap:14px; margin-top:10px; padding-top:10px; border-top:1px solid #f1f5f9; }
+.takvim-lejant span { display:flex; align-items:center; gap:5px; font-size:11px; color:#64748b; }
+.nokta { width:8px; height:8px; border-radius:50%; display:inline-block; }
+.tatil-nokta { background:#c0392b; }
+.bugun-nokta { background:#2a5aa8; }
 
 /* RESPONSIVE */
 @media (max-width:900px) {

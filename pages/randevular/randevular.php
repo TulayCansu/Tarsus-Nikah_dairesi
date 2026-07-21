@@ -59,6 +59,9 @@ $personeller = $pdo->query("SELECT id, ad, soyad FROM personeller WHERE aktif = 
 $saatler = $pdo->query("SELECT id, saat FROM saatler ORDER BY saat ASC")->fetchAll(PDO::FETCH_ASSOC);
 
 $form_hazir = count($salonlar) > 0 && count($personeller) > 0 && count($saatler) > 0;
+
+// --- Resmi tatil tarihleri (formda anlık uyarı için) ---
+$tatil_haritasi = $pdo->query("SELECT tarih, aciklama FROM resmitatiller")->fetchAll(PDO::FETCH_KEY_PAIR);
 ?>
 <!DOCTYPE html>
 <html lang="tr">
@@ -68,7 +71,7 @@ $form_hazir = count($salonlar) > 0 && count($personeller) > 0 && count($saatler)
 <title>Randevular | Nikah İşleri Müdürlüğü</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../../assets/css/randevular.css">
+<link rel="stylesheet" href="../../assets/css/randevular.css?v=4">
 </head>
 <body>
 
@@ -227,6 +230,14 @@ $form_hazir = count($salonlar) > 0 && count($personeller) > 0 && count($saatler)
                   <input type="text" id="gelin_tel" name="gelin_tel" required maxlength="15" placeholder="05xx xxx xx xx">
                 </div>
               </div>
+              <div class="form-satir">
+                <div class="form-grup">
+                  <label for="gelin_dogum_tarihi">Doğum Tarihi</label>
+                  <input type="date" id="gelin_dogum_tarihi" name="gelin_dogum_tarihi" required max="<?php echo date('Y-m-d', strtotime('-18 years')); ?>">
+                  <span class="yas-uyari" id="gelinYasUyari"></span>
+                </div>
+                <div class="form-grup"></div>
+              </div>
             </div>
 
             <div class="form-bolum">
@@ -250,6 +261,14 @@ $form_hazir = count($salonlar) > 0 && count($personeller) > 0 && count($saatler)
                   <label for="damat_tel">Telefon</label>
                   <input type="text" id="damat_tel" name="damat_tel" required maxlength="15" placeholder="05xx xxx xx xx">
                 </div>
+              </div>
+              <div class="form-satir">
+                <div class="form-grup">
+                  <label for="damat_dogum_tarihi">Doğum Tarihi</label>
+                  <input type="date" id="damat_dogum_tarihi" name="damat_dogum_tarihi" required max="<?php echo date('Y-m-d', strtotime('-18 years')); ?>">
+                  <span class="yas-uyari" id="damatYasUyari"></span>
+                </div>
+                <div class="form-grup"></div>
               </div>
             </div>
 
@@ -277,8 +296,26 @@ $form_hazir = count($salonlar) > 0 && count($personeller) > 0 && count($saatler)
               </div>
               <div class="form-satir">
                 <div class="form-grup">
-                  <label for="tarih">Tarih</label>
-                  <input type="date" id="tarih" name="tarih" required min="<?php echo date('Y-m-d'); ?>">
+                  <label for="tarih_goster">Tarih</label>
+                  <div class="tarih-secici" id="tarihSecici">
+                    <input type="text" id="tarih_goster" class="tarih-goster" placeholder="Tarih seçin" autocomplete="off" readonly required>
+                    <input type="hidden" id="tarih" name="tarih">
+                    <div class="takvim-kutu" id="takvimKutu" style="display:none;">
+                      <div class="takvim-header">
+                        <button type="button" class="takvim-nav" id="takvimOnceki">‹</button>
+                        <span id="takvimBaslik"></span>
+                        <button type="button" class="takvim-nav" id="takvimSonraki">›</button>
+                      </div>
+                      <div class="takvim-gunler-satiri">
+                        <span>Pt</span><span>Sa</span><span>Ça</span><span>Pe</span><span>Cu</span><span>Ct</span><span>Pz</span>
+                      </div>
+                      <div class="takvim-grid" id="takvimGrid"></div>
+                      <div class="takvim-lejant">
+                        <span><i class="nokta tatil-nokta"></i> Resmi tatil</span>
+                        <span><i class="nokta bugun-nokta"></i> Bugün</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <div class="form-grup">
                   <label for="saat_id">Saat</label>
@@ -329,6 +366,155 @@ $form_hazir = count($salonlar) > 0 && count($personeller) > 0 && count($saatler)
 </div>
 
 <script>
+const RESMI_TATILLER = <?php echo json_encode($tatil_haritasi, JSON_UNESCAPED_UNICODE); ?>;
+const AY_ADLARI = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+
+function takvimSeciciBaslat(opts) {
+  const gosterInput = document.getElementById(opts.gosterId);
+  const gizliInput = document.getElementById(opts.hiddenId);
+  const kutu = document.getElementById(opts.kutuId);
+  const grid = document.getElementById(opts.gridId);
+  const baslik = document.getElementById(opts.baslikId);
+  const oncekiBtn = document.getElementById(opts.oncekiId);
+  const sonrakiBtn = document.getElementById(opts.sonrakiId);
+  if (!gosterInput) return;
+
+  const bugun = new Date();
+  const bugunStr = bugun.toISOString().slice(0, 10);
+
+  let baslangic = opts.baslangicTarih ? new Date(opts.baslangicTarih + 'T00:00:00') : bugun;
+  let gYil = baslangic.getFullYear();
+  let gAy = baslangic.getMonth();
+
+  if (opts.baslangicTarih) {
+    gizliInput.value = opts.baslangicTarih;
+    gosterInput.value = formatliGoster(opts.baslangicTarih);
+  }
+
+  function formatliGoster(dateStr) {
+    const [y, m, d] = dateStr.split('-');
+    return `${d}.${m}.${y}`;
+  }
+
+  function ciz() {
+    baslik.textContent = AY_ADLARI[gAy] + ' ' + gYil;
+    grid.innerHTML = '';
+
+    const ilkGunIndex = (new Date(gYil, gAy, 1).getDay() + 6) % 7;
+    const ayGunSayisi = new Date(gYil, gAy + 1, 0).getDate();
+
+    for (let i = 0; i < ilkGunIndex; i++) {
+      const bos = document.createElement('button');
+      bos.type = 'button';
+      bos.className = 'takvim-gun bos';
+      grid.appendChild(bos);
+    }
+
+    for (let gun = 1; gun <= ayGunSayisi; gun++) {
+      const dateStr = `${gYil}-${String(gAy + 1).padStart(2, '0')}-${String(gun).padStart(2, '0')}`;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'takvim-gun';
+
+      const gunNoSpan = document.createElement('span');
+      gunNoSpan.className = 'gun-no';
+      gunNoSpan.textContent = gun;
+      btn.appendChild(gunNoSpan);
+
+      const tatilAciklama = RESMI_TATILLER[dateStr];
+      const haftaGunu = new Date(gYil, gAy, gun).getDay(); // 0=Pazar, 6=Cumartesi
+      const haftaSonuMu = haftaGunu === 0 || haftaGunu === 6;
+      const gecmisMi = opts.gecmisiEngelle && dateStr < bugunStr;
+
+      if (tatilAciklama) {
+        btn.classList.add('tatil');
+        btn.title = tatilAciklama;
+
+        const etiket = document.createElement('span');
+        etiket.className = 'tatil-etiket';
+        etiket.textContent = tatilAciklama;
+        btn.appendChild(etiket);
+      } else if (haftaSonuMu) {
+        btn.classList.add('pasif');
+        btn.title = 'Hafta sonu';
+      } else if (gecmisMi) {
+        btn.classList.add('pasif');
+      } else {
+        btn.addEventListener('click', () => {
+          gizliInput.value = dateStr;
+          gosterInput.value = formatliGoster(dateStr);
+          kutu.style.display = 'none';
+          ciz();
+        });
+      }
+
+      if (dateStr === bugunStr) btn.classList.add('bugun');
+      if (dateStr === gizliInput.value) btn.classList.add('secili');
+
+      grid.appendChild(btn);
+    }
+  }
+
+  oncekiBtn.addEventListener('click', () => { gAy--; if (gAy < 0) { gAy = 11; gYil--; } ciz(); });
+  sonrakiBtn.addEventListener('click', () => { gAy++; if (gAy > 11) { gAy = 0; gYil++; } ciz(); });
+
+  gosterInput.addEventListener('click', () => {
+    kutu.style.display = kutu.style.display === 'none' ? 'block' : 'none';
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!kutu.contains(e.target) && e.target !== gosterInput) {
+      kutu.style.display = 'none';
+    }
+  });
+
+  ciz();
+}
+
+takvimSeciciBaslat({
+  gosterId: 'tarih_goster', hiddenId: 'tarih', kutuId: 'takvimKutu',
+  gridId: 'takvimGrid', baslikId: 'takvimBaslik', oncekiId: 'takvimOnceki', sonrakiId: 'takvimSonraki',
+  gecmisiEngelle: true
+});
+
+// --- 18 yaş kontrolü (Gelin/Damat) ---
+function yasHesapla(dogumTarihiStr) {
+  const dogum = new Date(dogumTarihiStr + 'T00:00:00');
+  const bugun = new Date();
+  let yas = bugun.getFullYear() - dogum.getFullYear();
+  const ayFarki = bugun.getMonth() - dogum.getMonth();
+  if (ayFarki < 0 || (ayFarki === 0 && bugun.getDate() < dogum.getDate())) yas--;
+  return yas;
+}
+
+function yasKontroluBaglat(inputId, uyariId) {
+  const input = document.getElementById(inputId);
+  const uyari = document.getElementById(uyariId);
+  if (!input) return;
+  input.addEventListener('change', () => {
+    if (!input.value) { uyari.textContent = ''; input.setCustomValidity(''); return; }
+    if (yasHesapla(input.value) < 18) {
+      uyari.textContent = '18 yaşından küçükler için nikah randevusu oluşturulamaz.';
+      input.setCustomValidity('18 yaşından küçükler için nikah randevusu oluşturulamaz.');
+    } else {
+      uyari.textContent = '';
+      input.setCustomValidity('');
+    }
+  });
+}
+
+yasKontroluBaglat('gelin_dogum_tarihi', 'gelinYasUyari');
+yasKontroluBaglat('damat_dogum_tarihi', 'damatYasUyari');
+
+document.querySelector('#yeni-randevu form').addEventListener('submit', function (e) {
+  const gelinTarih = document.getElementById('gelin_dogum_tarihi').value;
+  const damatTarih = document.getElementById('damat_dogum_tarihi').value;
+  if ((gelinTarih && yasHesapla(gelinTarih) < 18) || (damatTarih && yasHesapla(damatTarih) < 18)) {
+    e.preventDefault();
+    alert('18 yaşından küçükler için nikah randevusu oluşturulamaz.');
+  }
+});
+
 function randevuIptalEt(id, btn) {
   if (!confirm('Bu randevuyu iptal etmek istediğine emin misin? Bu işlem geri alınamaz.')) return;
 

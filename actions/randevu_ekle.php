@@ -25,10 +25,12 @@ $gelin_adi    = trim($_POST['gelin_adi'] ?? '');
 $gelin_soyad  = trim($_POST['gelin_soyad'] ?? '');
 $gelin_TC     = trim($_POST['gelin_TC'] ?? '');
 $gelin_tel    = trim($_POST['gelin_tel'] ?? '');
+$gelin_dogum_tarihi = trim($_POST['gelin_dogum_tarihi'] ?? ''); // yalnızca 18 yaş kontrolü için, veritabanına kaydedilmiyor
 $damat_adi    = trim($_POST['damat_adi'] ?? '');
 $damat_soyad  = trim($_POST['damat_soyad'] ?? '');
 $damat_TC     = trim($_POST['damat_TC'] ?? '');
 $damat_tel    = trim($_POST['damat_tel'] ?? '');
+$damat_dogum_tarihi = trim($_POST['damat_dogum_tarihi'] ?? ''); // yalnızca 18 yaş kontrolü için, veritabanına kaydedilmiyor
 $tarih        = trim($_POST['tarih'] ?? '');
 $saat_id      = (int) ($_POST['saat_id'] ?? 0);
 $salon_id     = (int) ($_POST['salon_id'] ?? 0);
@@ -36,6 +38,15 @@ $personel_id  = (int) ($_POST['personel_id'] ?? 0);
 $durum        = trim($_POST['durum'] ?? 'bekliyor');
 $odeme_durumu = trim($_POST['odeme_durumu'] ?? 'ödenmedi');
 $odeme_tutari = trim($_POST['odeme_tutari'] ?? '0');
+
+// --- Yardımcı: doğum tarihine göre 18 yaşını doldurmuş mu? ---
+function resitMi(string $dogumTarihi): bool
+{
+    $dogum = DateTime::createFromFormat('Y-m-d', $dogumTarihi);
+    if (!$dogum) return false;
+    $on_sekiz_yil_once = new DateTime('-18 years');
+    return $dogum <= $on_sekiz_yil_once;
+}
 
 // --- Doğrulama ---
 $hatalar = [];
@@ -47,6 +58,18 @@ if (!preg_match('/^\d{11}$/', $gelin_TC)) $hatalar[] = 'Gelin TC kimlik numaras�
 if (!preg_match('/^\d{11}$/', $damat_TC)) $hatalar[] = 'Damat TC kimlik numarası 11 haneli olmalıdır.';
 
 if ($gelin_tel === '' || $damat_tel === '') $hatalar[] = 'Telefon numaraları zorunludur.';
+
+if (!DateTime::createFromFormat('Y-m-d', $gelin_dogum_tarihi)) {
+    $hatalar[] = 'Gelin doğum tarihi geçerli değil.';
+} elseif (!resitMi($gelin_dogum_tarihi)) {
+    $hatalar[] = 'Gelin 18 yaşından küçük olduğu için nikah randevusu oluşturulamaz.';
+}
+
+if (!DateTime::createFromFormat('Y-m-d', $damat_dogum_tarihi)) {
+    $hatalar[] = 'Damat doğum tarihi geçerli değil.';
+} elseif (!resitMi($damat_dogum_tarihi)) {
+    $hatalar[] = 'Damat 18 yaşından küçük olduğu için nikah randevusu oluşturulamaz.';
+}
 
 if (!DateTime::createFromFormat('Y-m-d', $tarih)) $hatalar[] = 'Geçerli bir tarih seçilmelidir.';
 
