@@ -29,3 +29,6 @@ INSERT INTO `resmitatiller` (`tarih`, `aciklama`) VALUES
 ('2026-08-30', 'Zafer Bayramı'),
 ('2026-10-28', 'Cumhuriyet Bayramı Arifesi (yarım gün)'),
 ('2026-10-29', 'Cumhuriyet Bayramı');
+ 
+ ALTER TABLE `resmitatiller`
+  ADD COLUMN `her_yil_tekrar` TINYINT(1) NOT NULL DEFAULT 1 AFTER `tur`;

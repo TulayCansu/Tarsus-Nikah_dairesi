@@ -16,7 +16,7 @@ unset($_SESSION['giris_hata']);
 <title>Nikah İşleri Müdürlüğü | Giriş</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../assets/css/login.css">
+<link rel="stylesheet" href="../assets/css/login.css?v=3">
 </head>
 <body>
 
