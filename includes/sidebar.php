@@ -24,9 +24,7 @@ $aktif_klasor = basename(dirname($_SERVER['PHP_SELF']));
     <a href="../raporlar/raporlar.php" class="<?php echo $aktif_klasor === 'raporlar' ? 'active' : ''; ?>">
       <span class="icon">📊</span> Raporlar
     </a>
-    <a href="../resmi_tatiller/resmi_tatiller.php" class="<?php echo $aktif_klasor === 'resmi_tatiller' ? 'active' : ''; ?>">
-      <span class="icon">🎌</span> Resmi Tatiller
-    </a>
+   
     <?php if (($_SESSION['rol'] ?? '') === 'admin'): ?>
     <a href="../loglar/loglar.php" class="<?php echo $aktif_klasor === 'loglar' ? 'active' : ''; ?>">
       <span class="icon">🗂️</span> Loglar
