@@ -1,0 +1,275 @@
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family:'Poppins', sans-serif;
+  background:#f4f6fa;
+  color:#1e2a3a;
+}
+
+.layout { display:flex; min-height:100vh; }
+
+/* SIDEBAR (dashboard.css / salonlar.css ile birebir aynı) */
+.sidebar {
+  width:240px;
+  background:linear-gradient(180deg, #14325f 0%, #0e264a 100%);
+  color:#fff;
+  display:flex;
+  flex-direction:column;
+  padding:24px 16px;
+  position:fixed;
+  top:0; left:0; bottom:0;
+}
+.sidebar-logo { display:flex; align-items:center; gap:10px; margin-bottom:32px; padding:0 8px; }
+.sidebar-logo img { width:36px; height:36px; object-fit:contain; }
+.sidebar-logo span { font-weight:600; font-size:15px; }
+
+.sidebar-menu { display:flex; flex-direction:column; gap:4px; flex:1; }
+.sidebar-menu a {
+  display:flex; align-items:center; gap:10px;
+  color:#c7d3e8; text-decoration:none;
+  padding:11px 12px; border-radius:8px;
+  font-size:14px; font-weight:500;
+  transition:background .15s;
+}
+.sidebar-menu a:hover { background:rgba(255,255,255,0.08); color:#fff; }
+.sidebar-menu a.active { background:#2a5aa8; color:#fff; }
+.sidebar-menu .icon { font-size:16px; }
+
+.sidebar-user {
+  font-size:13px; color:#c7d3e8; padding:12px 12px;
+  border-top:1px solid rgba(255,255,255,0.1);
+  display:flex; flex-direction:column; gap:4px;
+}
+.rol-badge {
+  align-self:flex-start; background:rgba(255,255,255,0.12);
+  padding:2px 8px; border-radius:10px; font-size:11px; text-transform:capitalize;
+}
+
+.sidebar-logout {
+  display:flex; align-items:center; gap:10px;
+  color:#f3b7b7; text-decoration:none;
+  padding:11px 12px; border-radius:8px; font-size:14px; font-weight:500;
+  margin-top:8px;
+}
+.sidebar-logout:hover { background:rgba(255,255,255,0.08); }
+
+/* MAIN CONTENT LAYOUT */
+/* MAIN CONTENT */
+.main-content {
+  margin-left: 240px;
+  flex: 1;
+  padding: 32px 40px;
+  max-width: 1200px;
+}
+
+/* PAGE HEADER */
+.page-header { margin-bottom: 24px; }
+.page-title h1 { font-size: 24px; font-weight: 600; color: #14325f; margin-bottom: 4px; }
+.page-title p { font-size: 14px; color: #64748b; }
+
+/* ALERTS */
+.alert {
+  padding: 14px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  margin-bottom: 20px;
+  font-weight: 500;
+}
+.alert-success { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+.alert-danger { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+/* TAB BANNER */
+.settings-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 2px solid #e2e8f0;
+  margin-bottom: 24px;
+}
+.tab-btn {
+  background: none;
+  border: none;
+  padding: 12px 20px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.2s ease;
+}
+.tab-btn:hover { color: #14325f; }
+.tab-btn.active {
+  color: #2a5aa8;
+  border-bottom-color: #2a5aa8;
+  font-weight: 600;
+}
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* CARD UI */
+.card {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  border: 1px solid #e2e8f0;
+  padding: 28px;
+}
+.card-header {
+  margin-bottom: 24px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.card-header h3 { font-size: 18px; color: #1e2a3a; font-weight: 600; }
+.card-header p { font-size: 13px; color: #64748b; margin-top: 2px; }
+
+/* FORM ELEMENTS */
+.settings-form { display: flex; flex-direction: column; gap: 24px; }
+.form-row { display: flex; gap: 20px; }
+.form-row .form-group { flex: 1; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group label, .section-label { font-size: 14px; font-weight: 600; color: #334155; }
+
+.form-group input[type="password"] {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+.form-group input:focus { border-color: #2a5aa8; box-shadow: 0 0 0 3px rgba(42, 90, 168, 0.1); }
+
+/* SALON SEÇİM KARTLARI */
+.salon-pills {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+.salon-pill-item input[type="radio"] { display: none; }
+
+.salon-pill-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.salon-pill-card .salon-icon { font-size: 20px; }
+.salon-pill-card .salon-info { display: flex; flex-direction: column; }
+.salon-pill-card .salon-name { font-size: 14px; font-weight: 600; color: #1e2a3a; }
+.salon-pill-card .salon-capacity { font-size: 12px; color: #64748b; }
+
+.salon-pill-item input[type="radio"]:checked + .salon-pill-card {
+  background: #eff6ff;
+  border-color: #2a5aa8;
+  box-shadow: 0 2px 8px rgba(42, 90, 168, 0.15);
+}
+.salon-pill-item input[type="radio"]:checked + .salon-pill-card .salon-name { color: #2a5aa8; }
+
+/* SAAT KARTLARI IZGARASI */
+.time-slots-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.btn-link {
+  background: none;
+  border: none;
+  color: #2a5aa8;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.quick-select-buttons { font-size: 12px; color: #cbd5e1; display: flex; gap: 8px; align-items: center; }
+
+.time-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+}
+
+.time-card input[type="checkbox"] { display: none; }
+
+.time-card-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 14px 10px;
+  background: #ffffff;
+  border: 2px solid #f1f5f9;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  opacity: 0.6;
+}
+
+.clock-icon { font-size: 16px; opacity: 0.7; }
+.time-text { font-size: 15px; font-weight: 600; color: #334155; }
+
+.status-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: #fee2e2;
+  color: #991b1b;
+  font-weight: 500;
+}
+
+/* Dynamic Badge Text */
+.time-card input[type="checkbox"]:not(:checked) + .time-card-content .status-badge::before {
+  content: "Pasif";
+}
+
+/* Checkbox Aktif (Seçili) Durumu */
+.time-card input[type="checkbox"]:checked + .time-card-content {
+  opacity: 1;
+  background: #f0fdf4;
+  border-color: #22c55e;
+  box-shadow: 0 2px 6px rgba(34, 197, 94, 0.12);
+}
+.time-card input[type="checkbox"]:checked + .time-card-content .time-text { color: #15803d; }
+.time-card input[type="checkbox"]:checked + .time-card-content .status-badge {
+  background: #dcfce7;
+  color: #166534;
+}
+.time-card input[type="checkbox"]:checked + .time-card-content .status-badge::before {
+  content: "Aktif";
+}
+
+.no-data {
+  grid-column: 1 / -1;
+  color: #64748b;
+  font-size: 14px;
+  font-style: italic;
+  padding: 12px 0;
+}
+
+/* BUTTONS */
+.border-top { border-top: 1px solid #f1f5f9; padding-top: 20px; }
+.form-actions { display: flex; justify-content: flex-end; }
+.btn {
+  padding: 10px 22px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s ease;
+}
+.btn-lg { padding: 12px 28px; font-size: 15px; font-weight: 600; }
+.btn-primary { background: #2a5aa8; color: #ffffff; }
+.btn-primary:hover { background: #14325f; box-shadow: 0 4px 12px rgba(20, 50, 95, 0.2); }
