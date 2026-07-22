@@ -20,7 +20,12 @@ $personeller = $pdo->query("SELECT id, ad, soyad FROM personeller WHERE aktif = 
 $saatler = $pdo->query("SELECT id, saat FROM saatler ORDER BY saat ASC")->fetchAll(PDO::FETCH_ASSOC);
 
 // --- Resmi tatil tarihleri (formda anlık uyarı için) ---
-$tatil_haritasi = $pdo->query("SELECT tarih, aciklama FROM resmitatiller")->fetchAll(PDO::FETCH_KEY_PAIR);
+$tatil_sabit = $pdo->query(
+    "SELECT DATE_FORMAT(tarih, '%m-%d') AS ay_gun, aciklama FROM resmitatiller WHERE her_yil_tekrar = 1"
+)->fetchAll(PDO::FETCH_KEY_PAIR);
+$tatil_degisken = $pdo->query(
+    "SELECT tarih, aciklama FROM resmitatiller WHERE her_yil_tekrar = 0 OR her_yil_tekrar IS NULL"
+)->fetchAll(PDO::FETCH_KEY_PAIR);
 ?>
 <!DOCTYPE html>
 <html lang="tr">
@@ -30,7 +35,7 @@ $tatil_haritasi = $pdo->query("SELECT tarih, aciklama FROM resmitatiller")->fetc
 <title>Randevu Düzenle | Nikah İşleri Müdürlüğü</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../../assets/css/randevular.css?v=4">
+<link rel="stylesheet" href="../../assets/css/randevular.css?v=6">
 </head>
 <body>
 
@@ -205,7 +210,8 @@ $tatil_haritasi = $pdo->query("SELECT tarih, aciklama FROM resmitatiller")->fetc
 </div>
 
 <script>
-const RESMI_TATILLER = <?php echo json_encode($tatil_haritasi, JSON_UNESCAPED_UNICODE); ?>;
+const TATIL_DEGISKEN = <?php echo json_encode($tatil_degisken, JSON_UNESCAPED_UNICODE); ?>; // yıla özel (ör. Ramazan/Kurban Bayramı)
+const TATIL_SABIT = <?php echo json_encode($tatil_sabit, JSON_UNESCAPED_UNICODE); ?>; // ay-gün eşleşir, her yıl tekrarlanır
 const AY_ADLARI = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
 
 function takvimSeciciBaslat(opts) {
@@ -260,7 +266,8 @@ function takvimSeciciBaslat(opts) {
       gunNoSpan.textContent = gun;
       btn.appendChild(gunNoSpan);
 
-      const tatilAciklama = RESMI_TATILLER[dateStr];
+      const ayGun = `${String(gAy + 1).padStart(2, '0')}-${String(gun).padStart(2, '0')}`;
+      const tatilAciklama = TATIL_DEGISKEN[dateStr] || TATIL_SABIT[ayGun];
       const haftaGunu = new Date(gYil, gAy, gun).getDay(); // 0=Pazar, 6=Cumartesi
       const haftaSonuMu = haftaGunu === 0 || haftaGunu === 6;
       const gecmisMi = opts.gecmisiEngelle && dateStr < bugunStr;
