@@ -29,6 +29,21 @@ if ($id <= 0) {
     geriDon('Geçersiz randevu numarası.', false);
 }
 
+// --- Mevcut durumu kontrol et: iptal edilmiş bir randevu artık düzenlenemez ---
+$mevcutStmt = $pdo->prepare("SELECT durum FROM randevular WHERE id = :id");
+$mevcutStmt->execute(['id' => $id]);
+$mevcut_durum = $mevcutStmt->fetchColumn();
+
+if ($mevcut_durum === false) {
+    geriDon('Randevu bulunamadı.', false);
+}
+
+if ($mevcut_durum === 'iptal') {
+    $_SESSION['hata'] = 'İptal edilmiş bir randevu düzenlenemez.';
+    header('Location: ../pages/randevular/detay.php?id=' . $id);
+    exit;
+}
+
 $gelin_adi    = trim($_POST['gelin_adi'] ?? '');
 $gelin_soyad  = trim($_POST['gelin_soyad'] ?? '');
 $gelin_TC     = trim($_POST['gelin_TC'] ?? '');
@@ -78,7 +93,8 @@ if (!DateTime::createFromFormat('Y-m-d', $tarih)) $hatalar[] = 'Geçerli bir tar
 if ($saat_id <= 0)     $hatalar[] = 'Saat seçilmelidir.';
 if ($salon_id <= 0)    $hatalar[] = 'Salon seçilmelidir.';
 if ($personel_id <= 0) $hatalar[] = 'Memur seçilmelidir.';
-if (!in_array($durum, ['bekliyor', 'onaylandi', 'tamamlandi', 'iptal'], true)) $hatalar[] = 'Geçersiz durum.';
+// Not: 'iptal' durumu buradan seçilemez; iptal işlemi yalnızca randevu_iptal.php üzerinden yapılır.
+if (!in_array($durum, ['bekliyor', 'onaylandi', 'tamamlandi'], true)) $hatalar[] = 'Geçersiz durum.';
 if (!in_array($odeme_durumu, ['ödendi', 'ödenmedi'], true)) $hatalar[] = 'Geçersiz ödeme durumu.';
 if (!is_numeric($odeme_tutari) || (float) $odeme_tutari < 0) $hatalar[] = 'Geçersiz ödeme tutarı.';
 

@@ -137,6 +137,46 @@ body {
 }
 .btn-yeni:hover { background:#1e4a92; }
 
+/* FİLTRE / ARAMA ÇUBUĞU */
+.filtre-cubugu {
+  padding:16px 24px; border-bottom:1px solid #eef1f6; background:#f8fafc;
+}
+.filtre-form {
+  display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+}
+.filtre-grup { flex:1 1 150px; min-width:130px; }
+.filtre-grup.filtre-ara { flex:2 1 220px; }
+.filtre-grup.filtre-aksiyon { flex:0 0 auto; display:flex; gap:8px; align-items:center; margin-left:auto; }
+.filtre-form input,
+.filtre-form select {
+  width:100%; padding:9px 12px; border:1px solid #e2e8f0; border-radius:8px;
+  font-size:13px; font-family:'Poppins', sans-serif; color:#1e2a3a; background:#fff;
+}
+.filtre-form input:focus,
+.filtre-form select:focus {
+  outline:none; border-color:#2a5aa8; box-shadow:0 0 0 3px rgba(42,90,168,0.12);
+}
+.btn-filtrele {
+  white-space:nowrap;
+  background:#2a5aa8; color:#fff; border:none;
+  padding:9px 16px; border-radius:8px;
+  font-size:13px; font-weight:600; cursor:pointer;
+  font-family:'Poppins', sans-serif; transition:background .15s;
+}
+.btn-filtrele:hover { background:#1e4a92; }
+.btn-filtre-temizle {
+  white-space:nowrap;
+  color:#c0392b; text-decoration:none; font-size:13px; font-weight:600;
+  padding:9px 10px;
+}
+.btn-filtre-temizle:hover { text-decoration:underline; }
+.bos-durum a { color:#2a5aa8; font-weight:600; text-decoration:none; }
+.bos-durum a:hover { text-decoration:underline; }
+
+@media (max-width:900px) {
+  .filtre-grup.filtre-aksiyon { margin-left:0; }
+}
+
 /* TABLO */
 .data-table { width:100%; border-collapse:collapse; }
 .data-table th {

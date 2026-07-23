@@ -10,6 +10,11 @@ $DURUM_ETIKET = [
     'iptal'      => 'İptal Edildi',
 ];
 
+// --- Flash mesajları (iptal/güncelleme işlemlerinden sonra gösterilir) ---
+$basari_mesaji = $_SESSION['basari'] ?? null;
+$hata_mesaji    = $_SESSION['hata'] ?? null;
+unset($_SESSION['basari'], $_SESSION['hata']);
+
 $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
 $stmt = $pdo->prepare("
@@ -40,7 +45,7 @@ $etiket = $DURUM_ETIKET[$durum_key] ?? ucfirst($durum_key);
 <title>Randevu Detayı | Nikah İşleri Müdürlüğü</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../../assets/css/randevular.css">
+<link rel="stylesheet" href="../../assets/css/randevular.css?v=7">
 </head>
 <body>
 
@@ -50,6 +55,13 @@ $etiket = $DURUM_ETIKET[$durum_key] ?? ucfirst($durum_key);
   <main class="content">
     <a href="randevular.php" class="geri-link">← Randevular listesine dön</a>
 
+    <?php if ($basari_mesaji): ?>
+      <div class="flash flash-basari"><?php echo htmlspecialchars($basari_mesaji); ?></div>
+    <?php endif; ?>
+    <?php if ($hata_mesaji): ?>
+      <div class="flash flash-hata"><?php echo htmlspecialchars($hata_mesaji); ?></div>
+    <?php endif; ?>
+
     <section class="panel">
       <div class="detay-ust">
         <div>
@@ -57,8 +69,8 @@ $etiket = $DURUM_ETIKET[$durum_key] ?? ucfirst($durum_key);
           <p>Randevu No: #<?php echo $randevu['id']; ?> &nbsp;·&nbsp; <span class="badge badge-<?php echo htmlspecialchars($durum_key); ?>"><?php echo htmlspecialchars($etiket); ?></span></p>
         </div>
         <div class="detay-aksiyonlar">
-          <a href="duzenle.php?id=<?php echo $randevu['id']; ?>" class="btn-ikincil">✏️ Düzenle</a>
           <?php if ($durum_key !== 'iptal'): ?>
+            <a href="duzenle.php?id=<?php echo $randevu['id']; ?>" class="btn-ikincil">✏️ Düzenle</a>
             <button type="button" class="btn-tehlike" onclick="randevuIptalEt(<?php echo $randevu['id']; ?>, this)">🗑️ İptal Et</button>
           <?php endif; ?>
         </div>
