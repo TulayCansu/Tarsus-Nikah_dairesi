@@ -1,7 +1,7 @@
 <?php
 
 require_once '../../includes/auth.php';
-require_once '../../config/database.php'; // $pdo burada tanımlı olmalı
+require_once '../../config/database.php'; 
 
 // --- Durum etiketleri ve renk sınıfları (tek yerden yönetiliyor) ---
 $DURUM_ETIKET = [
@@ -55,10 +55,10 @@ $toplam_sayfa = max(1, (int) ceil($toplam_randevu / $sayfa_basi));
 
 // --- Form için gerekli seçenekler ---
 $salonlar = $pdo->query("SELECT id, ad FROM salonlar WHERE aktif = 1 ORDER BY ad ASC")->fetchAll(PDO::FETCH_ASSOC);
-$personeller = $pdo->query("SELECT id, ad, soyad FROM personeller WHERE aktif = 1 ORDER BY ad ASC")->fetchAll(PDO::FETCH_ASSOC);
-$saatler = $pdo->query("SELECT id, saat FROM saatler ORDER BY saat ASC")->fetchAll(PDO::FETCH_ASSOC);
-
-$form_hazir = count($salonlar) > 0 && count($personeller) > 0 && count($saatler) > 0;
+// YENİ KOD
+$personeller = $pdo->query("SELECT id, ad, soyad FROM personeller WHERE aktif = 1 AND rol = 'personel' ORDER BY ad ASC")->fetchAll(PDO::FETCH_ASSOC);
+// Formun hazır olması için artık sadece salon ve personel bulunması yeterlidir
+$form_hazir = count($salonlar) > 0 && count($personeller) > 0;
 
 // --- Resmi tatil tarihleri (formda anlık uyarı için) ---
 // Sabit millî bayramlar (1 Ocak, 23 Nisan, 1 Mayıs, 19 Mayıs, 15 Temmuz, 30 Ağustos, 29 Ekim vb.)
@@ -108,7 +108,7 @@ $tatil_degisken = $pdo->query(
         Yeni randevu ekleyebilmek için önce şunların hazır olması gerekiyor:
         <?php if (count($salonlar) === 0): ?> en az bir <a href="../salonlar/salonlar.php">aktif salon</a>,<?php endif; ?>
         <?php if (count($personeller) === 0): ?> en az bir aktif personel,<?php endif; ?>
-        <?php if (count($saatler) === 0): ?> <code>saatler</code> tablosunda en az bir saat kaydı<?php endif; ?>.
+        
         Bunlar tamamlanana kadar formdaki "Kaydet" butonu pasif olacak.
       </div>
     <?php endif; ?>
@@ -328,11 +328,8 @@ $tatil_degisken = $pdo->query(
                 </div>
                 <div class="form-grup">
                   <label for="saat_id">Saat</label>
-                  <select id="saat_id" name="saat_id" required>
-                    <option value="">Seçiniz</option>
-                    <?php foreach ($saatler as $sa): ?>
-                      <option value="<?php echo $sa['id']; ?>"><?php echo htmlspecialchars(substr($sa['saat'], 0, 5)); ?></option>
-                    <?php endforeach; ?>
+                  <select id="saat_id" name="saat_id" required disabled>
+                    <option value="">Önce Salon ve Tarih Seçiniz</option>
                   </select>
                 </div>
               </div>
@@ -406,6 +403,49 @@ function takvimSeciciBaslat(opts) {
     return `${d}.${m}.${y}`;
   }
 
+  // --- Uygun Saatleri Getirme Fonksiyonu ---
+function uygunSaatleriYukle() {
+  const salonId = document.getElementById('salon_id').value;
+  const tarih = document.getElementById('tarih').value; // Gizli input olan 'tarih'
+  const saatSelect = document.getElementById('saat_id');
+
+  // Salon veya tarih seçilmediyse saat kutusunu sıfırla ve kilitle
+  if (!salonId || !tarih) {
+    saatSelect.innerHTML = '<option value="">Önce Salon ve Tarih Seçiniz</option>';
+    saatSelect.disabled = true;
+    return;
+  }
+
+  saatSelect.innerHTML = '<option value="">Yükleniyor...</option>';
+  saatSelect.disabled = true;
+
+  fetch(`../../actions/uygun_saatleri_getir.php?salon_id=${salonId}&tarih=${tarih}`)
+    .then(res => res.json())
+    .then(saatler => {
+      saatSelect.innerHTML = '<option value="">Saat Seçiniz</option>';
+
+      if (saatler.length === 0) {
+        saatSelect.innerHTML = '<option value="">Bu tarihte uygun saat bulunamadı</option>';
+        saatSelect.disabled = true;
+      } else {
+        saatler.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s.id;
+          opt.textContent = s.saat;
+          saatSelect.appendChild(opt);
+        });
+        saatSelect.disabled = false;
+      }
+    })
+    .catch(() => {
+      saatSelect.innerHTML = '<option value="">Saatler yüklenirken hata oluştu</option>';
+      saatSelect.disabled = true;
+    });
+  }
+
+    // Salon değiştiğinde saatleri tekrar sorgula
+    document.getElementById('salon_id').addEventListener('change', uygunSaatleriYukle);
+
   function ciz() {
     baslik.textContent = AY_ADLARI[gAy] + ' ' + gYil;
     grid.innerHTML = '';
@@ -456,6 +496,7 @@ function takvimSeciciBaslat(opts) {
           gosterInput.value = formatliGoster(dateStr);
           kutu.style.display = 'none';
           ciz();
+          uygunSaatleriYukle(); // Takvimden gün seçildiğinde saatleri otomatik getirir
         });
       }
 
