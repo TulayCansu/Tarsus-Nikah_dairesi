@@ -25,15 +25,30 @@ if ($id <= 0) {
 }
 
 try {
+    // Randevunun mevcut durumunu kontrol et: bulunamadı / zaten iptal / iptal edilebilir
+    $kontrol = $pdo->prepare("SELECT durum FROM randevular WHERE id = :id");
+    $kontrol->execute(['id' => $id]);
+    $mevcut_durum = $kontrol->fetchColumn();
+
+    if ($mevcut_durum === false) {
+        echo json_encode(['success' => false, 'message' => 'Randevu bulunamadı.']);
+        exit;
+    }
+
+    if ($mevcut_durum === 'iptal') {
+        echo json_encode(['success' => false, 'message' => 'Bu randevu zaten iptal edilmiş.']);
+        exit;
+    }
+
     $stmt = $pdo->prepare("
         UPDATE randevular
         SET durum = 'iptal', guncelleme_tarihi = NOW()
-        WHERE id = :id
+        WHERE id = :id AND durum != 'iptal'
     ");
     $stmt->execute(['id' => $id]);
 
     if ($stmt->rowCount() === 0) {
-        echo json_encode(['success' => false, 'message' => 'Randevu bulunamadı.']);
+        echo json_encode(['success' => false, 'message' => 'Randevu bulunamadı ya da zaten iptal edilmiş.']);
         exit;
     }
 

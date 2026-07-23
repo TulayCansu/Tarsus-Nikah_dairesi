@@ -21,7 +21,69 @@ $sayfa_basi = 8;
 $sayfa = isset($_GET['sayfa']) ? max(1, (int) $_GET['sayfa']) : 1;
 $offset = ($sayfa - 1) * $sayfa_basi;
 
-// --- İstatistik kartları ---
+// --- Filtreleme / Arama parametreleri ---
+$f_ara       = trim($_GET['ara'] ?? '');            // ad, soyad veya TC kimlik no içinde arama
+$f_durum     = trim($_GET['durum'] ?? '');           // bekliyor | onaylandi | tamamlandi | iptal
+$f_salon_id  = (int) ($_GET['salon_id'] ?? 0);
+$f_tarih_bas = trim($_GET['tarih_bas'] ?? '');        // YYYY-MM-DD
+$f_tarih_bit = trim($_GET['tarih_bit'] ?? '');        // YYYY-MM-DD
+
+$gecerli_durumlar = array_keys($DURUM_ETIKET);
+if ($f_durum !== '' && !in_array($f_durum, $gecerli_durumlar, true)) {
+    $f_durum = '';
+}
+if ($f_tarih_bas !== '' && !DateTime::createFromFormat('Y-m-d', $f_tarih_bas)) {
+    $f_tarih_bas = '';
+}
+if ($f_tarih_bit !== '' && !DateTime::createFromFormat('Y-m-d', $f_tarih_bit)) {
+    $f_tarih_bit = '';
+}
+
+$filtre_aktif = $f_ara !== '' || $f_durum !== '' || $f_salon_id > 0 || $f_tarih_bas !== '' || $f_tarih_bit !== '';
+
+// Sayfalama linklerinde ve formda tekrar kullanmak için filtre parametreleri
+$filtre_query = [
+    'ara'       => $f_ara,
+    'durum'     => $f_durum,
+    'salon_id'  => $f_salon_id > 0 ? $f_salon_id : '',
+    'tarih_bas' => $f_tarih_bas,
+    'tarih_bit' => $f_tarih_bit,
+];
+$filtre_query_string = http_build_query(array_filter($filtre_query, fn($v) => $v !== ''));
+
+$kosullar = [];
+$parametreler = [];
+
+if ($f_ara !== '') {
+    $kosullar[] = "(r.gelin_adi LIKE :ara1 OR r.gelin_soyad LIKE :ara2 OR r.damat_adi LIKE :ara3 OR r.damat_soyad LIKE :ara4 OR r.gelin_TC LIKE :ara5 OR r.damat_TC LIKE :ara6)";
+    $ara_deger = '%' . $f_ara . '%';
+    $parametreler['ara1'] = $ara_deger;
+    $parametreler['ara2'] = $ara_deger;
+    $parametreler['ara3'] = $ara_deger;
+    $parametreler['ara4'] = $ara_deger;
+    $parametreler['ara5'] = $ara_deger;
+    $parametreler['ara6'] = $ara_deger;
+}
+if ($f_durum !== '') {
+    $kosullar[] = "r.durum = :durum";
+    $parametreler['durum'] = $f_durum;
+}
+if ($f_salon_id > 0) {
+    $kosullar[] = "r.salon_id = :salon_id";
+    $parametreler['salon_id'] = $f_salon_id;
+}
+if ($f_tarih_bas !== '') {
+    $kosullar[] = "r.tarih >= :tarih_bas";
+    $parametreler['tarih_bas'] = $f_tarih_bas;
+}
+if ($f_tarih_bit !== '') {
+    $kosullar[] = "r.tarih <= :tarih_bit";
+    $parametreler['tarih_bit'] = $f_tarih_bit;
+}
+
+$where_sql = count($kosullar) > 0 ? ('WHERE ' . implode(' AND ', $kosullar)) : '';
+
+// --- İstatistik kartları (filtreden bağımsız, genel durum) ---
 $toplam_randevu = (int) $pdo->query("SELECT COUNT(*) FROM randevular")->fetchColumn();
 
 $bu_ayki_randevu = (int) $pdo->query(
@@ -36,25 +98,42 @@ $aktif_personel = (int) $pdo->query(
     "SELECT COUNT(*) FROM personeller WHERE aktif = 1"
 )->fetchColumn();
 
-// --- Randevu listesi (sayfalı) ---
+// --- Filtreye uyan toplam kayıt sayısı (sayfalama bu sayıya göre hesaplanır) ---
+$sayimStmt = $pdo->prepare("
+    SELECT COUNT(*)
+    FROM randevular r
+    JOIN salonlar sal ON r.salon_id = sal.id
+    JOIN saatler sa ON r.saat_id = sa.id
+    $where_sql
+");
+$sayimStmt->execute($parametreler);
+$filtreli_toplam = (int) $sayimStmt->fetchColumn();
+
+// --- Randevu listesi (filtreli + sayfalı) ---
 $stmt = $pdo->prepare("
     SELECT r.id, r.gelin_adi, r.gelin_soyad, r.damat_adi, r.damat_soyad,
            r.tarih, r.durum, sal.ad AS salon_adi, sa.saat
     FROM randevular r
     JOIN salonlar sal ON r.salon_id = sal.id
     JOIN saatler sa ON r.saat_id = sa.id
+    $where_sql
     ORDER BY r.tarih DESC, sa.saat DESC
     LIMIT :limit OFFSET :offset
 ");
+foreach ($parametreler as $anahtar => $deger) {
+    $stmt->bindValue(':' . $anahtar, $deger);
+}
 $stmt->bindValue(':limit', $sayfa_basi, PDO::PARAM_INT);
 $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 $randevular = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-$toplam_sayfa = max(1, (int) ceil($toplam_randevu / $sayfa_basi));
+$toplam_sayfa = max(1, (int) ceil($filtreli_toplam / $sayfa_basi));
 
 // --- Form için gerekli seçenekler ---
 $salonlar = $pdo->query("SELECT id, ad FROM salonlar WHERE aktif = 1 ORDER BY ad ASC")->fetchAll(PDO::FETCH_ASSOC);
+// Filtre kutusunda geçmiş randevuların ait olduğu pasif salonlar da görünsün diye ayrı bir liste
+$salonlar_filtre = $pdo->query("SELECT id, ad FROM salonlar ORDER BY ad ASC")->fetchAll(PDO::FETCH_ASSOC);
 $personeller = $pdo->query("SELECT id, ad, soyad FROM personeller WHERE aktif = 1 ORDER BY ad ASC")->fetchAll(PDO::FETCH_ASSOC);
 $saatler = $pdo->query("SELECT id, saat FROM saatler ORDER BY saat ASC")->fetchAll(PDO::FETCH_ASSOC);
 
@@ -80,7 +159,7 @@ $tatil_degisken = $pdo->query(
 <title>Randevular | Nikah İşleri Müdürlüğü</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../../assets/css/randevular.css?v=6">
+<link rel="stylesheet" href="../../assets/css/randevular.css?v=7">
 </head>
 <body>
 
@@ -152,6 +231,41 @@ $tatil_degisken = $pdo->query(
           <h2>Randevu Listesi</h2>
           <a href="#yeni-randevu" class="btn-yeni" id="yeniRandevuBtn">+ Yeni Randevu</a>
         </div>
+        <div class="filtre-cubugu">
+          <form method="GET" class="filtre-form" id="filtreForm">
+            <div class="filtre-grup filtre-ara">
+              <input type="text" name="ara" placeholder="İsim, soyisim veya TC kimlik no ara..." value="<?php echo htmlspecialchars($f_ara); ?>">
+            </div>
+            <div class="filtre-grup">
+              <select name="durum">
+                <option value="">Tüm Durumlar</option>
+                <?php foreach ($DURUM_ETIKET as $key => $label): ?>
+                  <option value="<?php echo $key; ?>" <?php echo $f_durum === $key ? 'selected' : ''; ?>><?php echo $label; ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <div class="filtre-grup">
+              <select name="salon_id">
+                <option value="">Tüm Salonlar</option>
+                <?php foreach ($salonlar_filtre as $s): ?>
+                  <option value="<?php echo $s['id']; ?>" <?php echo $f_salon_id === (int) $s['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($s['ad']); ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <div class="filtre-grup">
+              <input type="date" name="tarih_bas" value="<?php echo htmlspecialchars($f_tarih_bas); ?>" title="Başlangıç tarihi">
+            </div>
+            <div class="filtre-grup">
+              <input type="date" name="tarih_bit" value="<?php echo htmlspecialchars($f_tarih_bit); ?>" title="Bitiş tarihi">
+            </div>
+            <div class="filtre-grup filtre-aksiyon">
+              <button type="submit" class="btn-filtrele">🔍 Filtrele</button>
+              <?php if ($filtre_aktif): ?>
+                <a href="randevular.php" class="btn-filtre-temizle">Temizle ✕</a>
+              <?php endif; ?>
+            </div>
+          </form>
+        </div>
         <div class="panel-body">
           <table class="data-table">
             <thead>
@@ -165,7 +279,9 @@ $tatil_degisken = $pdo->query(
               </tr>
             </thead>
             <tbody>
-              <?php if (count($randevular) === 0): ?>
+              <?php if (count($randevular) === 0 && $filtre_aktif): ?>
+                <tr><td colspan="6" class="bos-durum">Filtrelere uyan randevu bulunamadı. <a href="randevular.php">Filtreleri temizle</a></td></tr>
+              <?php elseif (count($randevular) === 0): ?>
                 <tr><td colspan="6" class="bos-durum">Henüz randevu kaydı yok. Sağdaki formdan ilk randevuyu ekleyebilirsin.</td></tr>
               <?php else: ?>
                 <?php foreach ($randevular as $r): ?>
@@ -196,14 +312,22 @@ $tatil_degisken = $pdo->query(
           </table>
 
           <div class="sayfalama-satiri">
-            <span>Toplam <?php echo $toplam_randevu; ?> kayıttan
-              <?php echo $toplam_randevu === 0 ? 0 : $offset + 1; ?>–<?php echo min($offset + $sayfa_basi, $toplam_randevu); ?> arası gösteriliyor.</span>
+            <span>
+              <?php if ($filtre_aktif): ?>Filtreye uyan <?php endif; ?>Toplam <?php echo $filtreli_toplam; ?> kayıttan
+              <?php echo $filtreli_toplam === 0 ? 0 : $offset + 1; ?>–<?php echo min($offset + $sayfa_basi, $filtreli_toplam); ?> arası gösteriliyor.</span>
             <div class="sayfalama">
-              <a class="<?php echo $sayfa <= 1 ? 'devre-disi' : ''; ?>" href="?sayfa=<?php echo max(1, $sayfa - 1); ?>">‹</a>
+              <?php
+                $sayfaLink = function ($n) use ($filtre_query_string) {
+                    $q = 'sayfa=' . $n;
+                    if ($filtre_query_string !== '') $q .= '&' . $filtre_query_string;
+                    return '?' . $q;
+                };
+              ?>
+              <a class="<?php echo $sayfa <= 1 ? 'devre-disi' : ''; ?>" href="<?php echo $sayfaLink(max(1, $sayfa - 1)); ?>">‹</a>
               <?php for ($i = 1; $i <= $toplam_sayfa; $i++): ?>
-                <a class="<?php echo $i === $sayfa ? 'aktif' : ''; ?>" href="?sayfa=<?php echo $i; ?>"><?php echo $i; ?></a>
+                <a class="<?php echo $i === $sayfa ? 'aktif' : ''; ?>" href="<?php echo $sayfaLink($i); ?>"><?php echo $i; ?></a>
               <?php endfor; ?>
-              <a class="<?php echo $sayfa >= $toplam_sayfa ? 'devre-disi' : ''; ?>" href="?sayfa=<?php echo min($toplam_sayfa, $sayfa + 1); ?>">›</a>
+              <a class="<?php echo $sayfa >= $toplam_sayfa ? 'devre-disi' : ''; ?>" href="<?php echo $sayfaLink(min($toplam_sayfa, $sayfa + 1)); ?>">›</a>
             </div>
           </div>
         </div>
