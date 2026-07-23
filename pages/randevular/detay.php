@@ -47,7 +47,6 @@ $etiket = $DURUM_ETIKET[$durum_key] ?? ucfirst($durum_key);
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../assets/css/randevular.css?v=7">
 
-<!-- Ekran sıkışıklığını çözen ve Yazdırma Düzenini sağlayan Stiller -->
 <style>
   .detay-grid {
     display: grid !important;
