@@ -15,6 +15,13 @@ if (!$randevu) {
     exit;
 }
 
+// İptal edilmiş randevular artık düzenlenemez; direkt detay sayfasına yönlendir.
+if ($randevu['durum'] === 'iptal') {
+    $_SESSION['hata'] = 'İptal edilmiş bir randevu düzenlenemez.';
+    header('Location: detay.php?id=' . $randevu['id']);
+    exit;
+}
+
 $salonlar = $pdo->query("SELECT id, ad FROM salonlar WHERE aktif = 1 OR id = " . (int) $randevu['salon_id'] . " ORDER BY ad ASC")->fetchAll(PDO::FETCH_ASSOC);
 $personeller = $pdo->query("SELECT id, ad, soyad FROM personeller WHERE aktif = 1 OR id = " . (int) $randevu['personel_id'] . " ORDER BY ad ASC")->fetchAll(PDO::FETCH_ASSOC);
 $saatler = $pdo->query("SELECT id, saat FROM saatler ORDER BY saat ASC")->fetchAll(PDO::FETCH_ASSOC);
@@ -35,7 +42,7 @@ $tatil_degisken = $pdo->query(
 <title>Randevu Düzenle | Nikah İşleri Müdürlüğü</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../../assets/css/randevular.css?v=6">
+<link rel="stylesheet" href="../../assets/css/randevular.css?v=7">
 </head>
 <body>
 
@@ -174,7 +181,8 @@ $tatil_degisken = $pdo->query(
                 <label for="durum">Durum</label>
                 <select id="durum" name="durum" required>
                   <?php
-                  $durumlar = ['bekliyor' => 'Beklemede', 'onaylandi' => 'Onaylandı', 'tamamlandi' => 'Tamamlandı', 'iptal' => 'İptal Edildi'];
+                  // 'iptal' seçeneği burada YOK: bir randevu yalnızca "İptal Et" aksiyonuyla iptal edilebilir.
+                  $durumlar = ['bekliyor' => 'Beklemede', 'onaylandi' => 'Onaylandı', 'tamamlandi' => 'Tamamlandı'];
                   foreach ($durumlar as $key => $label):
                   ?>
                     <option value="<?php echo $key; ?>" <?php echo $key === $randevu['durum'] ? 'selected' : ''; ?>><?php echo $label; ?></option>
