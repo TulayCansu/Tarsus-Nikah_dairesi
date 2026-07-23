@@ -46,6 +46,108 @@ $etiket = $DURUM_ETIKET[$durum_key] ?? ucfirst($durum_key);
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../assets/css/randevular.css?v=7">
+
+<!-- Ekran sıkışıklığını çözen ve Yazdırma Düzenini sağlayan Stiller -->
+<style>
+  .detay-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 24px !important;
+    padding: 24px !important;
+  }
+
+  .detay-blok {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  }
+
+  .detay-blok-baslik {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: #14325f !important;
+    margin-bottom: 14px !important;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e2e8f0;
+  }
+
+  .detay-satir {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 16px !important;
+    padding: 9px 0 !important;
+    border-bottom: 1px dashed #e2e8f0 !important;
+    font-size: 14px !important;
+  }
+
+  .detay-satir:last-child {
+    border-bottom: none !important;
+  }
+
+  .detay-satir span:first-child {
+    color: #64748b !important;
+    font-weight: 500;
+    white-space: nowrap !important;
+    flex-shrink: 0;
+  }
+
+  .detay-satir span:last-child {
+    font-weight: 600 !important;
+    color: #0e264a !important;
+    text-align: right !important;
+    word-break: break-word !important;
+  }
+
+  @media (max-width: 800px) {
+    .detay-grid {
+      grid-template-columns: 1fr !important;
+    }
+  }
+
+  /* =========================================================
+     YAZDIRMA (PRINT) CSS KURALLARI
+     Yazıcıdan çıktı alınırken gereksiz butonları ve menüyü gizler.
+     ========================================================= */
+  @media print {
+    body {
+      background: #fff !important;
+      color: #000 !important;
+    }
+
+    .sidebar, 
+    .geri-link, 
+    .detay-aksiyonlar,
+    .flash {
+      display: none !important; /* Sol menü, geri linki ve butonlar kağıtta çıkmaz */
+    }
+
+    .content {
+      margin-left: 0 !important;
+      padding: 0 !important;
+    }
+
+    .panel {
+      box-shadow: none !important;
+      border: 1px solid #ccc !important;
+    }
+
+    .detay-grid {
+      grid-template-columns: 1fr 1fr !important;
+      padding: 15px !important;
+      gap: 15px !important;
+    }
+
+    .detay-blok {
+      border: 1px solid #ddd !important;
+      background: #fff !important;
+    }
+  }
+</style>
 </head>
 <body>
 
@@ -69,6 +171,9 @@ $etiket = $DURUM_ETIKET[$durum_key] ?? ucfirst($durum_key);
           <p>Randevu No: #<?php echo $randevu['id']; ?> &nbsp;·&nbsp; <span class="badge badge-<?php echo htmlspecialchars($durum_key); ?>"><?php echo htmlspecialchars($etiket); ?></span></p>
         </div>
         <div class="detay-aksiyonlar">
+          <!-- Yazdır Butonu -->
+          <button type="button" class="btn-ikincil" onclick="window.print()">🖨️ Yazdır</button>
+
           <?php if ($durum_key !== 'iptal'): ?>
             <a href="duzenle.php?id=<?php echo $randevu['id']; ?>" class="btn-ikincil">✏️ Düzenle</a>
             <button type="button" class="btn-tehlike" onclick="randevuIptalEt(<?php echo $randevu['id']; ?>, this)">🗑️ İptal Et</button>
