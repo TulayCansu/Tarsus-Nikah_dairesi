@@ -368,7 +368,7 @@ const TATIL_DEGISKEN = <?php echo json_encode($tatil_degisken, JSON_UNESCAPED_UN
 const TATIL_SABIT = <?php echo json_encode($tatil_sabit, JSON_UNESCAPED_UNICODE); ?>;
 const AY_ADLARI = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
 
-// --- Dinamik Saat Sıfırlama Yardımcısı ---
+// --- Dinamik Memur Sıfırlama Yardımcısı ---
 function memurSelectSifirla(mesaj = 'Önce Tarih ve Saat Seçiniz') {
   const personelSelect = document.getElementById('personel_id');
   personelSelect.innerHTML = `<option value="">${mesaj}</option>`;
@@ -455,7 +455,7 @@ function uygunSaatleriYukle() {
     });
 }
 
-// Change Event Dinleyicileri
+// Event Listeners
 document.getElementById('salon_id').addEventListener('change', uygunSaatleriYukle);
 document.getElementById('saat_id').addEventListener('change', uygunMemurlariYukle);
 
