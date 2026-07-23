@@ -23,16 +23,18 @@ if ($randevu['durum'] === 'iptal') {
 }
 
 $salonlar = $pdo->query("SELECT id, ad FROM salonlar WHERE aktif = 1 OR id = " . (int) $randevu['salon_id'] . " ORDER BY ad ASC")->fetchAll(PDO::FETCH_ASSOC);
-$personeller = $pdo->query("SELECT id, ad, soyad FROM personeller WHERE aktif = 1 OR id = " . (int) $randevu['personel_id'] . " ORDER BY ad ASC")->fetchAll(PDO::FETCH_ASSOC);
-$saatler = $pdo->query("SELECT id, saat FROM saatler ORDER BY saat ASC")->fetchAll(PDO::FETCH_ASSOC);
 
-// --- Resmi tatil tarihleri (formda anlık uyarı için) ---
+// --- Resmi tatil tarihleri ---
 $tatil_sabit = $pdo->query(
     "SELECT DATE_FORMAT(tarih, '%m-%d') AS ay_gun, aciklama FROM resmitatiller WHERE her_yil_tekrar = 1"
 )->fetchAll(PDO::FETCH_KEY_PAIR);
 $tatil_degisken = $pdo->query(
     "SELECT tarih, aciklama FROM resmitatiller WHERE her_yil_tekrar = 0 OR her_yil_tekrar IS NULL"
 )->fetchAll(PDO::FETCH_KEY_PAIR);
+
+// Doğum tarihlerinin form açılışında doldurulması
+$gelin_dogum_tarihi = !empty($randevu['gelin_dogum_tarihi']) ? $randevu['gelin_dogum_tarihi'] : '';
+$damat_dogum_tarihi = !empty($randevu['damat_dogum_tarihi']) ? $randevu['damat_dogum_tarihi'] : '';
 ?>
 <!DOCTYPE html>
 <html lang="tr">
@@ -58,7 +60,7 @@ $tatil_degisken = $pdo->query(
       </div>
       <div class="panel-body dolgu">
         <form action="../../actions/randevu_guncelle.php" method="POST">
-          <input type="hidden" name="id" value="<?php echo $randevu['id']; ?>">
+          <input type="hidden" name="id" id="randevu_id" value="<?php echo $randevu['id']; ?>">
 
           <div class="form-bolum">
             <div class="form-bolum-baslik">Gelin Bilgileri</div>
@@ -85,7 +87,9 @@ $tatil_degisken = $pdo->query(
             <div class="form-satir">
               <div class="form-grup">
                 <label for="gelin_dogum_tarihi">Doğum Tarihi</label>
-                <input type="date" id="gelin_dogum_tarihi" name="gelin_dogum_tarihi" required max="<?php echo date('Y-m-d', strtotime('-18 years')); ?>">
+                <input type="date" id="gelin_dogum_tarihi" name="gelin_dogum_tarihi" required 
+                       value="<?php echo htmlspecialchars($gelin_dogum_tarihi); ?>" 
+                       max="<?php echo date('Y-m-d', strtotime('-18 years')); ?>">
                 <span class="yas-uyari" id="gelinYasUyari"></span>
               </div>
               <div class="form-grup"></div>
@@ -117,7 +121,9 @@ $tatil_degisken = $pdo->query(
             <div class="form-satir">
               <div class="form-grup">
                 <label for="damat_dogum_tarihi">Doğum Tarihi</label>
-                <input type="date" id="damat_dogum_tarihi" name="damat_dogum_tarihi" required max="<?php echo date('Y-m-d', strtotime('-18 years')); ?>">
+                <input type="date" id="damat_dogum_tarihi" name="damat_dogum_tarihi" required 
+                       value="<?php echo htmlspecialchars($damat_dogum_tarihi); ?>" 
+                       max="<?php echo date('Y-m-d', strtotime('-18 years')); ?>">
                 <span class="yas-uyari" id="damatYasUyari"></span>
               </div>
               <div class="form-grup"></div>
@@ -136,20 +142,10 @@ $tatil_degisken = $pdo->query(
                 </select>
               </div>
               <div class="form-grup">
-                <label for="personel_id">Memur</label>
-                <select id="personel_id" name="personel_id" required>
-                  <?php foreach ($personeller as $p): ?>
-                    <option value="<?php echo $p['id']; ?>" <?php echo $p['id'] == $randevu['personel_id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($p['ad'] . ' ' . $p['soyad']); ?></option>
-                  <?php endforeach; ?>
-                </select>
-              </div>
-            </div>
-            <div class="form-satir">
-              <div class="form-grup">
                 <label for="tarih_goster">Tarih</label>
                 <div class="tarih-secici" id="tarihSecici">
                   <input type="text" id="tarih_goster" class="tarih-goster" placeholder="Tarih seçin" autocomplete="off" readonly required>
-                  <input type="hidden" id="tarih" name="tarih">
+                  <input type="hidden" id="tarih" name="tarih" value="<?php echo $randevu['tarih']; ?>">
                   <div class="takvim-kutu" id="takvimKutu" style="display:none;">
                     <div class="takvim-header">
                       <button type="button" class="takvim-nav" id="takvimOnceki">‹</button>
@@ -167,12 +163,18 @@ $tatil_degisken = $pdo->query(
                   </div>
                 </div>
               </div>
+            </div>
+            <div class="form-satir">
               <div class="form-grup">
                 <label for="saat_id">Saat</label>
                 <select id="saat_id" name="saat_id" required>
-                  <?php foreach ($saatler as $sa): ?>
-                    <option value="<?php echo $sa['id']; ?>" <?php echo $sa['id'] == $randevu['saat_id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars(substr($sa['saat'], 0, 5)); ?></option>
-                  <?php endforeach; ?>
+                  <option value="">Yükleniyor...</option>
+                </select>
+              </div>
+              <div class="form-grup">
+                <label for="personel_id">Memur</label>
+                <select id="personel_id" name="personel_id" required>
+                  <option value="">Yükleniyor...</option>
                 </select>
               </div>
             </div>
@@ -181,7 +183,6 @@ $tatil_degisken = $pdo->query(
                 <label for="durum">Durum</label>
                 <select id="durum" name="durum" required>
                   <?php
-                  // 'iptal' seçeneği burada YOK: bir randevu yalnızca "İptal Et" aksiyonuyla iptal edilebilir.
                   $durumlar = ['bekliyor' => 'Beklemede', 'onaylandi' => 'Onaylandı', 'tamamlandi' => 'Tamamlandı'];
                   foreach ($durumlar as $key => $label):
                   ?>
@@ -218,9 +219,119 @@ $tatil_degisken = $pdo->query(
 </div>
 
 <script>
-const TATIL_DEGISKEN = <?php echo json_encode($tatil_degisken, JSON_UNESCAPED_UNICODE); ?>; // yıla özel (ör. Ramazan/Kurban Bayramı)
-const TATIL_SABIT = <?php echo json_encode($tatil_sabit, JSON_UNESCAPED_UNICODE); ?>; // ay-gün eşleşir, her yıl tekrarlanır
+const MEVCUT_SAAT_ID = <?php echo (int) $randevu['saat_id']; ?>;
+const MEVCUT_PERSONEL_ID = <?php echo (int) $randevu['personel_id']; ?>;
+const RANDEVU_ID = <?php echo (int) $randevu['id']; ?>;
+
+const TATIL_DEGISKEN = <?php echo json_encode($tatil_degisken, JSON_UNESCAPED_UNICODE); ?>;
+const TATIL_SABIT = <?php echo json_encode($tatil_sabit, JSON_UNESCAPED_UNICODE); ?>;
 const AY_ADLARI = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+
+function memurSelectSifirla(mesaj = 'Önce Tarih ve Saat Seçiniz') {
+  const personelSelect = document.getElementById('personel_id');
+  personelSelect.innerHTML = `<option value="">${mesaj}</option>`;
+  personelSelect.disabled = true;
+}
+
+// --- Dinamik Müsait Memurları Yükleme ---
+function uygunMemurlariYukle(varsayilanPersonelId = null) {
+  const tarih = document.getElementById('tarih').value;
+  const saatId = document.getElementById('saat_id').value;
+  const personelSelect = document.getElementById('personel_id');
+
+  if (!tarih || !saatId) {
+    memurSelectSifirla();
+    return;
+  }
+
+  personelSelect.innerHTML = '<option value="">Yükleniyor...</option>';
+  personelSelect.disabled = true;
+
+  fetch(`../../actions/uygun_memurlari_getir.php?tarih=${tarih}&saat_id=${saatId}&randevu_id=${RANDEVU_ID}`)
+    .then(res => res.json())
+    .then(memurlar => {
+      personelSelect.innerHTML = '<option value="">Seçiniz</option>';
+
+      if (!memurlar || memurlar.length === 0) {
+        personelSelect.innerHTML = '<option value="">Bu saatte müsait memur bulunamadı</option>';
+        personelSelect.disabled = true;
+      } else {
+        const secilecekId = varsayilanPersonelId || MEVCUT_PERSONEL_ID;
+        memurlar.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.id;
+          opt.textContent = `${p.ad} ${p.soyad}`;
+          if (p.id == secilecekId) {
+            opt.selected = true;
+          }
+          personelSelect.appendChild(opt);
+        });
+        personelSelect.disabled = false;
+      }
+    })
+    .catch(() => {
+      personelSelect.innerHTML = '<option value="">Memurlar yüklenirken hata oluştu</option>';
+      personelSelect.disabled = true;
+    });
+}
+
+// --- Dinamik Uygun Saatleri Yükleme ---
+function uygunSaatleriYukle(varsayilanSaatId = null) {
+  const salonId = document.getElementById('salon_id').value;
+  const tarih = document.getElementById('tarih').value;
+  const saatSelect = document.getElementById('saat_id');
+
+  if (!salonId || !tarih) {
+    saatSelect.innerHTML = '<option value="">Önce Salon ve Tarih Seçiniz</option>';
+    saatSelect.disabled = true;
+    memurSelectSifirla();
+    return;
+  }
+
+  saatSelect.innerHTML = '<option value="">Yükleniyor...</option>';
+  saatSelect.disabled = true;
+
+  fetch(`../../actions/uygun_saatleri_getir.php?salon_id=${salonId}&tarih=${tarih}&randevu_id=${RANDEVU_ID}`)
+    .then(res => res.json())
+    .then(saatler => {
+      saatSelect.innerHTML = '<option value="">Saat Seçiniz</option>';
+
+      if (!saatler || saatler.length === 0) {
+        saatSelect.innerHTML = '<option value="">Bu tarihte uygun saat bulunamadı</option>';
+        saatSelect.disabled = true;
+        memurSelectSifirla();
+      } else {
+        const secilecekSaatId = varsayilanSaatId || MEVCUT_SAAT_ID;
+        saatler.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s.id;
+          opt.textContent = s.saat;
+          if (s.id == secilecekSaatId) {
+            opt.selected = true;
+          }
+          saatSelect.appendChild(opt);
+        });
+        saatSelect.disabled = false;
+
+        // Saatler yüklendikten sonra o saate uygun memurları getir
+        uygunMemurlariYukle(MEVCUT_PERSONEL_ID);
+      }
+    })
+    .catch(() => {
+      saatSelect.innerHTML = '<option value="">Saatler yüklenirken hata oluştu</option>';
+      saatSelect.disabled = true;
+      memurSelectSifirla();
+    });
+}
+
+// Salon veya Saat değiştiğinde tetikleyiciler
+document.getElementById('salon_id').addEventListener('change', () => {
+  uygunSaatleriYukle();
+});
+
+document.getElementById('saat_id').addEventListener('change', () => {
+  uygunMemurlariYukle();
+});
 
 function takvimSeciciBaslat(opts) {
   const gosterInput = document.getElementById(opts.gosterId);
@@ -276,7 +387,7 @@ function takvimSeciciBaslat(opts) {
 
       const ayGun = `${String(gAy + 1).padStart(2, '0')}-${String(gun).padStart(2, '0')}`;
       const tatilAciklama = TATIL_DEGISKEN[dateStr] || TATIL_SABIT[ayGun];
-      const haftaGunu = new Date(gYil, gAy, gun).getDay(); // 0=Pazar, 6=Cumartesi
+      const haftaGunu = new Date(gYil, gAy, gun).getDay();
       const haftaSonuMu = haftaGunu === 0 || haftaGunu === 6;
       const gecmisMi = opts.gecmisiEngelle && dateStr < bugunStr;
 
@@ -299,6 +410,7 @@ function takvimSeciciBaslat(opts) {
           gosterInput.value = formatliGoster(dateStr);
           kutu.style.display = 'none';
           ciz();
+          uygunSaatleriYukle();
         });
       }
 
@@ -332,6 +444,11 @@ takvimSeciciBaslat({
   gecmisiEngelle: false
 });
 
+// Sayfa ilk yüklendiğinde mevcut salon ve tarihe göre saat ile memurları getir
+document.addEventListener('DOMContentLoaded', () => {
+  uygunSaatleriYukle(MEVCUT_SAAT_ID);
+});
+
 // --- 18 yaş kontrolü (Gelin/Damat) ---
 function yasHesapla(dogumTarihiStr) {
   const dogum = new Date(dogumTarihiStr + 'T00:00:00');
@@ -346,7 +463,8 @@ function yasKontroluBaglat(inputId, uyariId) {
   const input = document.getElementById(inputId);
   const uyari = document.getElementById(uyariId);
   if (!input) return;
-  input.addEventListener('change', () => {
+  
+  const kontrolEt = () => {
     if (!input.value) { uyari.textContent = ''; input.setCustomValidity(''); return; }
     if (yasHesapla(input.value) < 18) {
       uyari.textContent = '18 yaşından küçükler için nikah randevusu oluşturulamaz.';
@@ -355,7 +473,11 @@ function yasKontroluBaglat(inputId, uyariId) {
       uyari.textContent = '';
       input.setCustomValidity('');
     }
-  });
+  };
+
+  input.addEventListener('change', kontrolEt);
+  // Sayfa yüklendiğinde var olan değer için kontrolü çalıştır
+  if (input.value) kontrolEt();
 }
 
 yasKontroluBaglat('gelin_dogum_tarihi', 'gelinYasUyari');

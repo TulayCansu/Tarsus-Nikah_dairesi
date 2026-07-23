@@ -21,23 +21,25 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 // --- Girdileri topla ve temizle ---
-$gelin_adi    = trim($_POST['gelin_adi'] ?? '');
-$gelin_soyad  = trim($_POST['gelin_soyad'] ?? '');
-$gelin_TC     = trim($_POST['gelin_TC'] ?? '');
-$gelin_tel    = trim($_POST['gelin_tel'] ?? '');
-$gelin_dogum_tarihi = trim($_POST['gelin_dogum_tarihi'] ?? ''); // yalnızca 18 yaş kontrolü için, veritabanına kaydedilmiyor
-$damat_adi    = trim($_POST['damat_adi'] ?? '');
-$damat_soyad  = trim($_POST['damat_soyad'] ?? '');
-$damat_TC     = trim($_POST['damat_TC'] ?? '');
-$damat_tel    = trim($_POST['damat_tel'] ?? '');
-$damat_dogum_tarihi = trim($_POST['damat_dogum_tarihi'] ?? ''); // yalnızca 18 yaş kontrolü için, veritabanına kaydedilmiyor
-$tarih        = trim($_POST['tarih'] ?? '');
-$saat_id      = (int) ($_POST['saat_id'] ?? 0);
-$salon_id     = (int) ($_POST['salon_id'] ?? 0);
-$personel_id  = (int) ($_POST['personel_id'] ?? 0);
-$durum        = trim($_POST['durum'] ?? 'bekliyor');
-$odeme_durumu = trim($_POST['odeme_durumu'] ?? 'ödenmedi');
-$odeme_tutari = trim($_POST['odeme_tutari'] ?? '0');
+$gelin_adi          = trim($_POST['gelin_adi'] ?? '');
+$gelin_soyad        = trim($_POST['gelin_soyad'] ?? '');
+$gelin_TC           = trim($_POST['gelin_TC'] ?? '');
+$gelin_tel          = trim($_POST['gelin_tel'] ?? '');
+$gelin_dogum_tarihi = trim($_POST['gelin_dogum_tarihi'] ?? '');
+
+$damat_adi          = trim($_POST['damat_adi'] ?? '');
+$damat_soyad        = trim($_POST['damat_soyad'] ?? '');
+$damat_TC           = trim($_POST['damat_TC'] ?? '');
+$damat_tel          = trim($_POST['damat_tel'] ?? '');
+$damat_dogum_tarihi = trim($_POST['damat_dogum_tarihi'] ?? '');
+
+$tarih              = trim($_POST['tarih'] ?? '');
+$saat_id            = (int) ($_POST['saat_id'] ?? 0);
+$salon_id           = (int) ($_POST['salon_id'] ?? 0);
+$personel_id        = (int) ($_POST['personel_id'] ?? 0);
+$durum              = trim($_POST['durum'] ?? 'bekliyor');
+$odeme_durumu       = trim($_POST['odeme_durumu'] ?? 'ödenmedi');
+$odeme_tutari       = trim($_POST['odeme_tutari'] ?? '0');
 
 // --- Yardımcı: doğum tarihine göre 18 yaşını doldurmuş mu? ---
 function resitMi(string $dogumTarihi): bool
@@ -87,37 +89,70 @@ if (!empty($hatalar)) {
 
 // --- Kayıt ---
 try {
+    // 1. Seçilen saat_id'nin saat string karşılığını bulalım (Örn: '09:00:00')
+    $stmt_saat = $pdo->prepare("SELECT saat FROM saatler WHERE id = ?");
+    $stmt_saat->execute([$saat_id]);
+    $secilen_saat = $stmt_saat->fetchColumn();
+
+    if (!$secilen_saat) {
+        geriDon('Geçersiz saat seçimi.', false);
+    }
+
+    // 2. Memurun aynı gün ve saatte (başka salonda dahi olsa) randevusu var mı kontrol edelim
+    $sql_caksima = "
+        SELECT COUNT(*) 
+        FROM randevular r
+        JOIN saatler s ON r.saat_id = s.id
+        WHERE r.personel_id = :personel_id 
+          AND r.tarih = :tarih 
+          AND s.saat = :secilen_saat 
+          AND r.durum != 'iptal'
+    ";
+    $stmt_check = $pdo->prepare($sql_caksima);
+    $stmt_check->execute([
+        'personel_id'  => $personel_id,
+        'tarih'        => $tarih,
+        'secilen_saat'  => $secilen_saat
+    ]);
+
+    if ($stmt_check->fetchColumn() > 0) {
+        geriDon('Seçilen nikah memurunun belirtilen tarih ve saatte başka bir randevusu bulunmaktadır.', false);
+    }
+
+    // 3. Veritabanı Kaydı (gelin_dogum_tarihi ve damat_dogum_tarihi eklendi)
     $stmt = $pdo->prepare("
         INSERT INTO randevular
-            (gelin_adi, gelin_soyad, gelin_TC, gelin_tel,
-             damat_adi, damat_soyad, damat_TC, damat_tel,
+            (gelin_adi, gelin_soyad, gelin_TC, gelin_tel, gelin_dogum_tarihi,
+             damat_adi, damat_soyad, damat_TC, damat_tel, damat_dogum_tarihi,
              tarih, saat_id, salon_id, personel_id,
              durum, olusturma_tarihi, guncelleme_tarihi,
              iptal_nedeni, odeme_durumu, odeme_tutari)
         VALUES
-            (:gelin_adi, :gelin_soyad, :gelin_TC, :gelin_tel,
-             :damat_adi, :damat_soyad, :damat_TC, :damat_tel,
+            (:gelin_adi, :gelin_soyad, :gelin_TC, :gelin_tel, :gelin_dogum_tarihi,
+             :damat_adi, :damat_soyad, :damat_TC, :damat_tel, :damat_dogum_tarihi,
              :tarih, :saat_id, :salon_id, :personel_id,
              :durum, NOW(), NOW(),
              '', :odeme_durumu, :odeme_tutari)
     ");
 
     $stmt->execute([
-        'gelin_adi'    => $gelin_adi,
-        'gelin_soyad'  => $gelin_soyad,
-        'gelin_TC'     => $gelin_TC,
-        'gelin_tel'    => $gelin_tel,
-        'damat_adi'    => $damat_adi,
-        'damat_soyad'  => $damat_soyad,
-        'damat_TC'     => $damat_TC,
-        'damat_tel'    => $damat_tel,
-        'tarih'        => $tarih,
-        'saat_id'      => $saat_id,
-        'salon_id'     => $salon_id,
-        'personel_id'  => $personel_id,
-        'durum'        => $durum,
-        'odeme_durumu' => $odeme_durumu,
-        'odeme_tutari' => $odeme_tutari,
+        'gelin_adi'          => $gelin_adi,
+        'gelin_soyad'        => $gelin_soyad,
+        'gelin_TC'           => $gelin_TC,
+        'gelin_tel'          => $gelin_tel,
+        'gelin_dogum_tarihi' => $gelin_dogum_tarihi,
+        'damat_adi'          => $damat_adi,
+        'damat_soyad'        => $damat_soyad,
+        'damat_TC'           => $damat_TC,
+        'damat_tel'          => $damat_tel,
+        'damat_dogum_tarihi' => $damat_dogum_tarihi,
+        'tarih'              => $tarih,
+        'saat_id'            => $saat_id,
+        'salon_id'           => $salon_id,
+        'personel_id'        => $personel_id,
+        'durum'              => $durum,
+        'odeme_durumu'       => $odeme_durumu,
+        'odeme_tutari'       => $odeme_tutari,
     ]);
 
     // Log kaydı
