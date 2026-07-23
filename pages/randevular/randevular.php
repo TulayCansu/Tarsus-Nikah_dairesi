@@ -25,29 +25,27 @@ $offset = ($sayfa - 1) * $sayfa_basi;
 $f_ara       = trim($_GET['ara'] ?? '');            // ad, soyad veya TC kimlik no içinde arama
 $f_durum     = trim($_GET['durum'] ?? '');           // bekliyor | onaylandi | tamamlandi | iptal
 $f_salon_id  = (int) ($_GET['salon_id'] ?? 0);
-$f_tarih_bas = trim($_GET['tarih_bas'] ?? '');        // YYYY-MM-DD
-$f_tarih_bit = trim($_GET['tarih_bit'] ?? '');        // YYYY-MM-DD
+$f_tarih     = trim($_GET['tarih'] ?? '');        // YYYY-MM-DD
+$f_saat_id   = (int) ($_GET['saat_id'] ?? 0);
 
 $gecerli_durumlar = array_keys($DURUM_ETIKET);
 if ($f_durum !== '' && !in_array($f_durum, $gecerli_durumlar, true)) {
     $f_durum = '';
 }
-if ($f_tarih_bas !== '' && !DateTime::createFromFormat('Y-m-d', $f_tarih_bas)) {
-    $f_tarih_bas = '';
-}
-if ($f_tarih_bit !== '' && !DateTime::createFromFormat('Y-m-d', $f_tarih_bit)) {
-    $f_tarih_bit = '';
+if ($f_tarih !== '' && !DateTime::createFromFormat('Y-m-d', $f_tarih)) {
+  $f_tarih = '';
 }
 
-$filtre_aktif = $f_ara !== '' || $f_durum !== '' || $f_salon_id > 0 || $f_tarih_bas !== '' || $f_tarih_bit !== '';
+
+$filtre_aktif = $f_ara !== '' || $f_durum !== '' || $f_salon_id > 0 || $f_tarih !== '' || $f_saat_id > 0;
 
 // Sayfalama linklerinde ve formda tekrar kullanmak için filtre parametreleri
 $filtre_query = [
-    'ara'       => $f_ara,
-    'durum'     => $f_durum,
-    'salon_id'  => $f_salon_id > 0 ? $f_salon_id : '',
-    'tarih_bas' => $f_tarih_bas,
-    'tarih_bit' => $f_tarih_bit,
+  'ara'      => $f_ara,
+  'durum'    => $f_durum,
+  'salon_id' => $f_salon_id > 0 ? $f_salon_id : '',
+  'tarih'    => $f_tarih,
+  'saat_id'  => $f_saat_id > 0 ? $f_saat_id : '',
 ];
 $filtre_query_string = http_build_query(array_filter($filtre_query, fn($v) => $v !== ''));
 
@@ -72,13 +70,13 @@ if ($f_salon_id > 0) {
     $kosullar[] = "r.salon_id = :salon_id";
     $parametreler['salon_id'] = $f_salon_id;
 }
-if ($f_tarih_bas !== '') {
-    $kosullar[] = "r.tarih >= :tarih_bas";
-    $parametreler['tarih_bas'] = $f_tarih_bas;
+if ($f_tarih !== '') {
+  $kosullar[] = "r.tarih = :tarih";
+  $parametreler['tarih'] = $f_tarih;
 }
-if ($f_tarih_bit !== '') {
-    $kosullar[] = "r.tarih <= :tarih_bit";
-    $parametreler['tarih_bit'] = $f_tarih_bit;
+if ($f_saat_id > 0) {
+  $kosullar[] = "r.saat_id = :saat_id";
+  $parametreler['saat_id'] = $f_saat_id;
 }
 
 $where_sql = count($kosullar) > 0 ? ('WHERE ' . implode(' AND ', $kosullar)) : '';
@@ -134,7 +132,7 @@ $toplam_sayfa = max(1, (int) ceil($filtreli_toplam / $sayfa_basi));
 $salonlar = $pdo->query("SELECT id, ad FROM salonlar WHERE aktif = 1 ORDER BY ad ASC")->fetchAll(PDO::FETCH_ASSOC);
 // Filtre kutusunda geçmiş randevuların ait olduğu pasif salonlar da görünsün diye ayrı bir liste
 $salonlar_filtre = $pdo->query("SELECT id, ad FROM salonlar ORDER BY ad ASC")->fetchAll(PDO::FETCH_ASSOC);
-
+$saatler_filtre = $pdo->query("SELECT id, saat FROM saatler ORDER BY saat ASC")->fetchAll(PDO::FETCH_ASSOC);
 // Sadece rolü 'personel' olanlar randevu memuru olarak seçilebilir
 $personeller = $pdo->query("SELECT id, ad, soyad FROM personeller WHERE aktif = 1 AND rol = 'personel' ORDER BY ad ASC")->fetchAll(PDO::FETCH_ASSOC);
 
@@ -229,13 +227,13 @@ $tatil_degisken = $pdo->query(
     <div class="randevu-grid">
 
       <!-- SOL: RANDEVU LİSTESİ -->
-      <section class="panel">
+      <section class="panel" id="randevu-listesi">
         <div class="panel-header">
           <h2>Randevu Listesi</h2>
           <a href="#yeni-randevu" class="btn-yeni" id="yeniRandevuBtn">+ Yeni Randevu</a>
         </div>
         <div class="filtre-cubugu">
-          <form method="GET" class="filtre-form" id="filtreForm">
+        <form method="GET" class="filtre-form" id="filtreForm" action="randevular.php#randevu-listesi">
             <div class="filtre-grup filtre-ara">
               <input type="text" name="ara" placeholder="İsim, soyisim veya TC kimlik no ara..." value="<?php echo htmlspecialchars($f_ara); ?>">
             </div>
@@ -256,16 +254,19 @@ $tatil_degisken = $pdo->query(
               </select>
             </div>
             <div class="filtre-grup">
-              <input type="date" name="tarih_bas" value="<?php echo htmlspecialchars($f_tarih_bas); ?>" title="Başlangıç tarihi">
+              <input type="date" name="tarih" value="<?php echo htmlspecialchars($f_tarih); ?>" title="Tarih">
             </div>
             <div class="filtre-grup">
-              <input type="date" name="tarih_bit" value="<?php echo htmlspecialchars($f_tarih_bit); ?>" title="Bitiş tarihi">
+              <select name="saat_id" id="filtreSaatId">
+                <option value="">Tüm Saatler</option>
+                <?php foreach ($saatler_filtre as $sa): ?>
+                  <option value="<?php echo $sa['id']; ?>" <?php echo $f_saat_id === (int) $sa['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars(substr($sa['saat'], 0, 5)); ?></option>
+                <?php endforeach; ?>
+              </select>
             </div>
             <div class="filtre-grup filtre-aksiyon">
               <button type="submit" class="btn-filtrele">🔍 Filtrele</button>
-              <?php if ($filtre_aktif): ?>
-                <a href="randevular.php" class="btn-filtre-temizle">Temizle ✕</a>
-              <?php endif; ?>
+              <a href="randevular.php" class="btn-filtre-temizle">Temizle ✕</a>
             </div>
           </form>
         </div>
