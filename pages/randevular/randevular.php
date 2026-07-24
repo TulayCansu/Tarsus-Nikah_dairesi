@@ -3,7 +3,7 @@
 require_once '../../includes/auth.php';
 require_once '../../config/database.php'; 
 
-// --- Durum etiketleri ve renk sınıfları (tek yerden yönetiliyor) ---
+// --- Durum etiketleri ve renk sınıfları ---
 $DURUM_ETIKET = [
     'bekliyor'   => 'Beklemede',
     'onaylandi'  => 'Onaylandı',
@@ -11,7 +11,7 @@ $DURUM_ETIKET = [
     'iptal'      => 'İptal Edildi',
 ];
 
-// --- Flash mesajları (ekleme/silme işleminden sonra actions/ dosyaları set ediyor) ---
+// --- Flash mesajları ---
 $basari_mesaji = $_SESSION['basari'] ?? null;
 $hata_mesaji    = $_SESSION['hata'] ?? null;
 unset($_SESSION['basari'], $_SESSION['hata']);
@@ -93,40 +93,25 @@ $bugunku_randevu = (int) $pdo->query(
 )->fetchColumn();
 
 $aktif_personel = (int) $pdo->query(
-    "SELECT COUNT(*) FROM personeller WHERE aktif = 1"
+    "SELECT COUNT(*) FROM personeller WHERE aktif = 1 AND rol = 'personel'"
 )->fetchColumn();
 
-// --- Filtreye uyan toplam kayıt sayısı (sayfalama bu sayıya göre hesaplanır) ---
-$sayimStmt = $pdo->prepare("
-    SELECT COUNT(*)
-    FROM randevular r
-    JOIN salonlar sal ON r.salon_id = sal.id
-    JOIN saatler sa ON r.saat_id = sa.id
-    $where_sql
-");
-$sayimStmt->execute($parametreler);
-$filtreli_toplam = (int) $sayimStmt->fetchColumn();
-
-// --- Randevu listesi (filtreli + sayfalı) ---
+// --- Randevu listesi (sayfalı) ---
 $stmt = $pdo->prepare("
     SELECT r.id, r.gelin_adi, r.gelin_soyad, r.damat_adi, r.damat_soyad,
            r.tarih, r.durum, sal.ad AS salon_adi, sa.saat
     FROM randevular r
     JOIN salonlar sal ON r.salon_id = sal.id
     JOIN saatler sa ON r.saat_id = sa.id
-    $where_sql
     ORDER BY r.tarih DESC, sa.saat DESC
     LIMIT :limit OFFSET :offset
 ");
-foreach ($parametreler as $anahtar => $deger) {
-    $stmt->bindValue(':' . $anahtar, $deger);
-}
 $stmt->bindValue(':limit', $sayfa_basi, PDO::PARAM_INT);
 $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 $randevular = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-$toplam_sayfa = max(1, (int) ceil($filtreli_toplam / $sayfa_basi));
+$toplam_sayfa = max(1, (int) ceil($toplam_randevu / $sayfa_basi));
 
 // --- Form için gerekli seçenekler ---
 $salonlar = $pdo->query("SELECT id, ad FROM salonlar WHERE aktif = 1 ORDER BY ad ASC")->fetchAll(PDO::FETCH_ASSOC);
@@ -140,11 +125,7 @@ $personeller = $pdo->query("SELECT id, ad, soyad FROM personeller WHERE aktif = 
 // Formun hazır olması için artık sadece salon ve personel bulunması yeterli.
 $form_hazir = count($salonlar) > 0 && count($personeller) > 0;
 
-// --- Resmi tatil tarihleri (formda anlık uyarı için) ---
-// Sabit millî bayramlar (1 Ocak, 23 Nisan, 1 Mayıs, 19 Mayıs, 15 Temmuz, 30 Ağustos, 29 Ekim vb.)
-// her_yil_tekrar = 1 ile işaretlenir ve ay-gün eşleşmesiyle HER YIL gösterilir.
-// Ramazan/Kurban Bayramı gibi dini bayramlar yıldan yıla kaydığı için her_yil_tekrar = 0'dır,
-// yalnızca girildikleri yıl için gösterilir.
+// --- Resmi tatil tarihleri ---
 $tatil_sabit = $pdo->query(
     "SELECT DATE_FORMAT(tarih, '%m-%d') AS ay_gun, aciklama FROM resmitatiller WHERE her_yil_tekrar = 1"
 )->fetchAll(PDO::FETCH_KEY_PAIR);
@@ -160,7 +141,7 @@ $tatil_degisken = $pdo->query(
 <title>Randevular | Nikah İşleri Müdürlüğü</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../../assets/css/randevular.css?v=7">
+<link rel="stylesheet" href="../../assets/css/randevular.css?v=6">
 </head>
 <body>
 
@@ -187,7 +168,7 @@ $tatil_degisken = $pdo->query(
       <div class="uyari-kutu">
         Yeni randevu ekleyebilmek için önce şunların hazır olması gerekiyor:
         <?php if (count($salonlar) === 0): ?> en az bir <a href="../salonlar/salonlar.php">aktif salon</a>,<?php endif; ?>
-        <?php if (count($personeller) === 0): ?> en az bir aktif personel,<?php endif; ?>
+        <?php if ($personeller_sayisi === 0): ?> en az bir aktif personel,<?php endif; ?>
         
         Bunlar tamamlanana kadar formdaki "Kaydet" butonu pasif olacak.
       </div>
@@ -283,9 +264,7 @@ $tatil_degisken = $pdo->query(
               </tr>
             </thead>
             <tbody>
-              <?php if (count($randevular) === 0 && $filtre_aktif): ?>
-                <tr><td colspan="6" class="bos-durum">Filtrelere uyan randevu bulunamadı. <a href="randevular.php">Filtreleri temizle</a></td></tr>
-              <?php elseif (count($randevular) === 0): ?>
+              <?php if (count($randevular) === 0): ?>
                 <tr><td colspan="6" class="bos-durum">Henüz randevu kaydı yok. Sağdaki formdan ilk randevuyu ekleyebilirsin.</td></tr>
               <?php else: ?>
                 <?php foreach ($randevular as $r): ?>
@@ -316,22 +295,14 @@ $tatil_degisken = $pdo->query(
           </table>
 
           <div class="sayfalama-satiri">
-            <span>
-              <?php if ($filtre_aktif): ?>Filtreye uyan <?php endif; ?>Toplam <?php echo $filtreli_toplam; ?> kayıttan
-              <?php echo $filtreli_toplam === 0 ? 0 : $offset + 1; ?>–<?php echo min($offset + $sayfa_basi, $filtreli_toplam); ?> arası gösteriliyor.</span>
+            <span>Toplam <?php echo $toplam_randevu; ?> kayıttan
+              <?php echo $toplam_randevu === 0 ? 0 : $offset + 1; ?>–<?php echo min($offset + $sayfa_basi, $toplam_randevu); ?> arası gösteriliyor.</span>
             <div class="sayfalama">
-              <?php
-                $sayfaLink = function ($n) use ($filtre_query_string) {
-                    $q = 'sayfa=' . $n;
-                    if ($filtre_query_string !== '') $q .= '&' . $filtre_query_string;
-                    return '?' . $q;
-                };
-              ?>
-              <a class="<?php echo $sayfa <= 1 ? 'devre-disi' : ''; ?>" href="<?php echo $sayfaLink(max(1, $sayfa - 1)); ?>">‹</a>
+              <a class="<?php echo $sayfa <= 1 ? 'devre-disi' : ''; ?>" href="?sayfa=<?php echo max(1, $sayfa - 1); ?>">‹</a>
               <?php for ($i = 1; $i <= $toplam_sayfa; $i++): ?>
-                <a class="<?php echo $i === $sayfa ? 'aktif' : ''; ?>" href="<?php echo $sayfaLink($i); ?>"><?php echo $i; ?></a>
+                <a class="<?php echo $i === $sayfa ? 'aktif' : ''; ?>" href="?sayfa=<?php echo $i; ?>"><?php echo $i; ?></a>
               <?php endfor; ?>
-              <a class="<?php echo $sayfa >= $toplam_sayfa ? 'devre-disi' : ''; ?>" href="<?php echo $sayfaLink(min($toplam_sayfa, $sayfa + 1)); ?>">›</a>
+              <a class="<?php echo $sayfa >= $toplam_sayfa ? 'devre-disi' : ''; ?>" href="?sayfa=<?php echo min($toplam_sayfa, $sayfa + 1); ?>">›</a>
             </div>
           </div>
         </div>
@@ -422,17 +393,6 @@ $tatil_degisken = $pdo->query(
                   </select>
                 </div>
                 <div class="form-grup">
-                  <label for="personel_id">Memur</label>
-                  <select id="personel_id" name="personel_id" required>
-                    <option value="">Seçiniz</option>
-                    <?php foreach ($personeller as $p): ?>
-                      <option value="<?php echo $p['id']; ?>"><?php echo htmlspecialchars($p['ad'] . ' ' . $p['soyad']); ?></option>
-                    <?php endforeach; ?>
-                  </select>
-                </div>
-              </div>
-              <div class="form-satir">
-                <div class="form-grup">
                   <label for="tarih_goster">Tarih</label>
                   <div class="tarih-secici" id="tarihSecici">
                     <input type="text" id="tarih_goster" class="tarih-goster" placeholder="Tarih seçin" autocomplete="off" readonly required>
@@ -454,10 +414,18 @@ $tatil_degisken = $pdo->query(
                     </div>
                   </div>
                 </div>
+              </div>
+              <div class="form-satir">
                 <div class="form-grup">
                   <label for="saat_id">Saat</label>
                   <select id="saat_id" name="saat_id" required disabled>
                     <option value="">Önce Salon ve Tarih Seçiniz</option>
+                  </select>
+                </div>
+                <div class="form-grup">
+                  <label for="personel_id">Memur</label>
+                  <select id="personel_id" name="personel_id" required disabled>
+                    <option value="">Önce Tarih ve Saat Seçiniz</option>
                   </select>
                 </div>
               </div>
@@ -500,9 +468,100 @@ $tatil_degisken = $pdo->query(
 </div>
 
 <script>
-const TATIL_DEGISKEN = <?php echo json_encode($tatil_degisken, JSON_UNESCAPED_UNICODE); ?>; // yıla özel (ör. Ramazan/Kurban Bayramı)
-const TATIL_SABIT = <?php echo json_encode($tatil_sabit, JSON_UNESCAPED_UNICODE); ?>; // ay-gün eşleşir, her yıl tekrarlanır
+const TATIL_DEGISKEN = <?php echo json_encode($tatil_degisken, JSON_UNESCAPED_UNICODE); ?>;
+const TATIL_SABIT = <?php echo json_encode($tatil_sabit, JSON_UNESCAPED_UNICODE); ?>;
 const AY_ADLARI = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+
+// --- Dinamik Memur Sıfırlama Yardımcısı ---
+function memurSelectSifirla(mesaj = 'Önce Tarih ve Saat Seçiniz') {
+  const personelSelect = document.getElementById('personel_id');
+  personelSelect.innerHTML = `<option value="">${mesaj}</option>`;
+  personelSelect.disabled = true;
+}
+
+// --- Müsait Memurları Getirme Fonksiyonu ---
+function uygunMemurlariYukle() {
+  const tarih = document.getElementById('tarih').value;
+  const saatId = document.getElementById('saat_id').value;
+  const personelSelect = document.getElementById('personel_id');
+
+  if (!tarih || !saatId) {
+    memurSelectSifirla();
+    return;
+  }
+
+  personelSelect.innerHTML = '<option value="">Yükleniyor...</option>';
+  personelSelect.disabled = true;
+
+  fetch(`../../actions/uygun_memurlari_getir.php?tarih=${tarih}&saat_id=${saatId}`)
+    .then(res => res.json())
+    .then(memurlar => {
+      personelSelect.innerHTML = '<option value="">Seçiniz</option>';
+
+      if (!memurlar || memurlar.length === 0) {
+        personelSelect.innerHTML = '<option value="">Bu saatte müsait memur bulunamadı</option>';
+        personelSelect.disabled = true;
+      } else {
+        memurlar.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.id;
+          opt.textContent = `${p.ad} ${p.soyad}`;
+          personelSelect.appendChild(opt);
+        });
+        personelSelect.disabled = false;
+      }
+    })
+    .catch(() => {
+      personelSelect.innerHTML = '<option value="">Memurlar yüklenirken hata oluştu</option>';
+      personelSelect.disabled = true;
+    });
+}
+
+// --- Uygun Saatleri Getirme Fonksiyonu ---
+function uygunSaatleriYukle() {
+  const salonId = document.getElementById('salon_id').value;
+  const tarih = document.getElementById('tarih').value;
+  const saatSelect = document.getElementById('saat_id');
+
+  // Salon veya tarih değiştiğinde memur seçimini sıfırla
+  memurSelectSifirla();
+
+  if (!salonId || !tarih) {
+    saatSelect.innerHTML = '<option value="">Önce Salon ve Tarih Seçiniz</option>';
+    saatSelect.disabled = true;
+    return;
+  }
+
+  saatSelect.innerHTML = '<option value="">Yükleniyor...</option>';
+  saatSelect.disabled = true;
+
+  fetch(`../../actions/uygun_saatleri_getir.php?salon_id=${salonId}&tarih=${tarih}`)
+    .then(res => res.json())
+    .then(saatler => {
+      saatSelect.innerHTML = '<option value="">Saat Seçiniz</option>';
+
+      if (!saatler || saatler.length === 0) {
+        saatSelect.innerHTML = '<option value="">Bu tarihte uygun saat bulunamadı</option>';
+        saatSelect.disabled = true;
+      } else {
+        saatler.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s.id;
+          opt.textContent = s.saat;
+          saatSelect.appendChild(opt);
+        });
+        saatSelect.disabled = false;
+      }
+    })
+    .catch(() => {
+      saatSelect.innerHTML = '<option value="">Saatler yüklenirken hata oluştu</option>';
+      saatSelect.disabled = true;
+    });
+}
+
+// Event Listeners
+document.getElementById('salon_id').addEventListener('change', uygunSaatleriYukle);
+document.getElementById('saat_id').addEventListener('change', uygunMemurlariYukle);
 
 function takvimSeciciBaslat(opts) {
   const gosterInput = document.getElementById(opts.gosterId);
@@ -531,49 +590,6 @@ function takvimSeciciBaslat(opts) {
     return `${d}.${m}.${y}`;
   }
 
-  // --- Uygun Saatleri Getirme Fonksiyonu ---
-function uygunSaatleriYukle() {
-  const salonId = document.getElementById('salon_id').value;
-  const tarih = document.getElementById('tarih').value; // Gizli input olan 'tarih'
-  const saatSelect = document.getElementById('saat_id');
-
-  // Salon veya tarih seçilmediyse saat kutusunu sıfırla ve kilitle
-  if (!salonId || !tarih) {
-    saatSelect.innerHTML = '<option value="">Önce Salon ve Tarih Seçiniz</option>';
-    saatSelect.disabled = true;
-    return;
-  }
-
-  saatSelect.innerHTML = '<option value="">Yükleniyor...</option>';
-  saatSelect.disabled = true;
-
-  fetch(`../../actions/uygun_saatleri_getir.php?salon_id=${salonId}&tarih=${tarih}`)
-    .then(res => res.json())
-    .then(saatler => {
-      saatSelect.innerHTML = '<option value="">Saat Seçiniz</option>';
-
-      if (saatler.length === 0) {
-        saatSelect.innerHTML = '<option value="">Bu tarihte uygun saat bulunamadı</option>';
-        saatSelect.disabled = true;
-      } else {
-        saatler.forEach(s => {
-          const opt = document.createElement('option');
-          opt.value = s.id;
-          opt.textContent = s.saat;
-          saatSelect.appendChild(opt);
-        });
-        saatSelect.disabled = false;
-      }
-    })
-    .catch(() => {
-      saatSelect.innerHTML = '<option value="">Saatler yüklenirken hata oluştu</option>';
-      saatSelect.disabled = true;
-    });
-  }
-
-    // Salon değiştiğinde saatleri tekrar sorgula
-    document.getElementById('salon_id').addEventListener('change', uygunSaatleriYukle);
-
   function ciz() {
     baslik.textContent = AY_ADLARI[gAy] + ' ' + gYil;
     grid.innerHTML = '';
@@ -601,7 +617,7 @@ function uygunSaatleriYukle() {
 
       const ayGun = `${String(gAy + 1).padStart(2, '0')}-${String(gun).padStart(2, '0')}`;
       const tatilAciklama = TATIL_DEGISKEN[dateStr] || TATIL_SABIT[ayGun];
-      const haftaGunu = new Date(gYil, gAy, gun).getDay(); // 0=Pazar, 6=Cumartesi
+      const haftaGunu = new Date(gYil, gAy, gun).getDay();
       const haftaSonuMu = haftaGunu === 0 || haftaGunu === 6;
       const gecmisMi = opts.gecmisiEngelle && dateStr < bugunStr;
 
@@ -624,7 +640,7 @@ function uygunSaatleriYukle() {
           gosterInput.value = formatliGoster(dateStr);
           kutu.style.display = 'none';
           ciz();
-          uygunSaatleriYukle(); // Takvimden gün seçildiğinde saatleri otomatik getirir
+          uygunSaatleriYukle();
         });
       }
 
