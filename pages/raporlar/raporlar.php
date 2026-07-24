@@ -1,9 +1,6 @@
 <?php
-// Oturumu başlat
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
+require_once '../../includes/auth.php';
+yetkiKontrol('admin');
 require_once '../../config/database.php'; 
 
 // Filtreleme Parametreleri (Tarih Aralığı)

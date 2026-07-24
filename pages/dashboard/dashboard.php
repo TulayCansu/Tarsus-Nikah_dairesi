@@ -1,8 +1,7 @@
 <?php
 
 require_once '../../includes/auth.php';
-
-require_once '../../config/database.php'; // $pdo burada tanımlı olmalı
+require_once '../../config/database.php'; // 
 
 // Bugünkü randevu sayısı
 $stmt = $pdo->query("SELECT COUNT(*) FROM randevular WHERE tarih = CURDATE()");
@@ -20,7 +19,7 @@ $bekleyen_randevu = $stmt->fetchColumn();
 $stmt = $pdo->query("SELECT COUNT(*) FROM personeller WHERE aktif = 1");
 $toplam_personel = $stmt->fetchColumn();
 
-// Son 5 randevu (gelin/damat adı, saat ve salon adıyla birlikte)
+// Son 5 randevu 
 $stmt = $pdo->query("
     SELECT r.gelin_adi, r.gelin_soyad, r.damat_adi, r.damat_soyad,
            r.tarih, s.saat, sal.ad AS salon_adi, r.durum, r.odeme_durumu

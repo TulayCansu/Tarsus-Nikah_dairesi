@@ -13,8 +13,6 @@ try {
     
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
     
-    // Bağlantı başarılı ise (Lokalde test ederken açabilirsin, sonra sil)
-    // echo "Bağlantı başarılı!"; 
 } catch (PDOException $e) {
     
     die("Veri tabanı bağlantı hatası: " . $e->getMessage());

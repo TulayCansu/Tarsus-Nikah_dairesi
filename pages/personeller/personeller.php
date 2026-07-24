@@ -1,9 +1,7 @@
 <?php
-
+require_once '../../includes/auth.php';
+yetkiKontrol('admin');
 require_once '../../config/database.php'; 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
 
 // AJAX DURUM GÜNCELLEME KONTROLÜ 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'toggle') {

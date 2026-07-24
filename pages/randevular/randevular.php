@@ -21,7 +21,67 @@ $sayfa_basi = 8;
 $sayfa = isset($_GET['sayfa']) ? max(1, (int) $_GET['sayfa']) : 1;
 $offset = ($sayfa - 1) * $sayfa_basi;
 
-// --- İstatistik kartları ---
+// --- Filtreleme / Arama parametreleri ---
+$f_ara       = trim($_GET['ara'] ?? '');            // ad, soyad veya TC kimlik no içinde arama
+$f_durum     = trim($_GET['durum'] ?? '');           // bekliyor | onaylandi | tamamlandi | iptal
+$f_salon_id  = (int) ($_GET['salon_id'] ?? 0);
+$f_tarih     = trim($_GET['tarih'] ?? '');        // YYYY-MM-DD
+$f_saat_id   = (int) ($_GET['saat_id'] ?? 0);
+
+$gecerli_durumlar = array_keys($DURUM_ETIKET);
+if ($f_durum !== '' && !in_array($f_durum, $gecerli_durumlar, true)) {
+    $f_durum = '';
+}
+if ($f_tarih !== '' && !DateTime::createFromFormat('Y-m-d', $f_tarih)) {
+  $f_tarih = '';
+}
+
+
+$filtre_aktif = $f_ara !== '' || $f_durum !== '' || $f_salon_id > 0 || $f_tarih !== '' || $f_saat_id > 0;
+
+// Sayfalama linklerinde ve formda tekrar kullanmak için filtre parametreleri
+$filtre_query = [
+  'ara'      => $f_ara,
+  'durum'    => $f_durum,
+  'salon_id' => $f_salon_id > 0 ? $f_salon_id : '',
+  'tarih'    => $f_tarih,
+  'saat_id'  => $f_saat_id > 0 ? $f_saat_id : '',
+];
+$filtre_query_string = http_build_query(array_filter($filtre_query, fn($v) => $v !== ''));
+
+$kosullar = [];
+$parametreler = [];
+
+if ($f_ara !== '') {
+    $kosullar[] = "(r.gelin_adi LIKE :ara1 OR r.gelin_soyad LIKE :ara2 OR r.damat_adi LIKE :ara3 OR r.damat_soyad LIKE :ara4 OR r.gelin_TC LIKE :ara5 OR r.damat_TC LIKE :ara6)";
+    $ara_deger = '%' . $f_ara . '%';
+    $parametreler['ara1'] = $ara_deger;
+    $parametreler['ara2'] = $ara_deger;
+    $parametreler['ara3'] = $ara_deger;
+    $parametreler['ara4'] = $ara_deger;
+    $parametreler['ara5'] = $ara_deger;
+    $parametreler['ara6'] = $ara_deger;
+}
+if ($f_durum !== '') {
+    $kosullar[] = "r.durum = :durum";
+    $parametreler['durum'] = $f_durum;
+}
+if ($f_salon_id > 0) {
+    $kosullar[] = "r.salon_id = :salon_id";
+    $parametreler['salon_id'] = $f_salon_id;
+}
+if ($f_tarih !== '') {
+  $kosullar[] = "r.tarih = :tarih";
+  $parametreler['tarih'] = $f_tarih;
+}
+if ($f_saat_id > 0) {
+  $kosullar[] = "r.saat_id = :saat_id";
+  $parametreler['saat_id'] = $f_saat_id;
+}
+
+$where_sql = count($kosullar) > 0 ? ('WHERE ' . implode(' AND ', $kosullar)) : '';
+
+// --- İstatistik kartları (filtreden bağımsız, genel durum) ---
 $toplam_randevu = (int) $pdo->query("SELECT COUNT(*) FROM randevular")->fetchColumn();
 
 $bu_ayki_randevu = (int) $pdo->query(
@@ -55,9 +115,15 @@ $toplam_sayfa = max(1, (int) ceil($toplam_randevu / $sayfa_basi));
 
 // --- Form için gerekli seçenekler ---
 $salonlar = $pdo->query("SELECT id, ad FROM salonlar WHERE aktif = 1 ORDER BY ad ASC")->fetchAll(PDO::FETCH_ASSOC);
-$personeller_sayisi = (int) $pdo->query("SELECT COUNT(*) FROM personeller WHERE aktif = 1 AND rol = 'personel'")->fetchColumn();
+// Filtre kutusunda geçmiş randevuların ait olduğu pasif salonlar da görünsün diye ayrı bir liste
+$salonlar_filtre = $pdo->query("SELECT id, ad FROM salonlar ORDER BY ad ASC")->fetchAll(PDO::FETCH_ASSOC);
+$saatler_filtre = $pdo->query("SELECT id, saat FROM saatler ORDER BY saat ASC")->fetchAll(PDO::FETCH_ASSOC);
+// Sadece rolü 'personel' olanlar randevu memuru olarak seçilebilir
+$personeller = $pdo->query("SELECT id, ad, soyad FROM personeller WHERE aktif = 1 AND rol = 'personel' ORDER BY ad ASC")->fetchAll(PDO::FETCH_ASSOC);
 
-$form_hazir = count($salonlar) > 0 && $personeller_sayisi > 0;
+// Saat artık $saatler dizisiyle değil, salon + tarih seçilince AJAX ile anlık getiriliyor.
+// Formun hazır olması için artık sadece salon ve personel bulunması yeterli.
+$form_hazir = count($salonlar) > 0 && count($personeller) > 0;
 
 // --- Resmi tatil tarihleri ---
 $tatil_sabit = $pdo->query(
@@ -142,10 +208,48 @@ $tatil_degisken = $pdo->query(
     <div class="randevu-grid">
 
       <!-- SOL: RANDEVU LİSTESİ -->
-      <section class="panel">
+      <section class="panel" id="randevu-listesi">
         <div class="panel-header">
           <h2>Randevu Listesi</h2>
           <a href="#yeni-randevu" class="btn-yeni" id="yeniRandevuBtn">+ Yeni Randevu</a>
+        </div>
+        <div class="filtre-cubugu">
+        <form method="GET" class="filtre-form" id="filtreForm" action="randevular.php#randevu-listesi">
+            <div class="filtre-grup filtre-ara">
+              <input type="text" name="ara" placeholder="İsim, soyisim veya TC kimlik no ara..." value="<?php echo htmlspecialchars($f_ara); ?>">
+            </div>
+            <div class="filtre-grup">
+              <select name="durum">
+                <option value="">Tüm Durumlar</option>
+                <?php foreach ($DURUM_ETIKET as $key => $label): ?>
+                  <option value="<?php echo $key; ?>" <?php echo $f_durum === $key ? 'selected' : ''; ?>><?php echo $label; ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <div class="filtre-grup">
+              <select name="salon_id">
+                <option value="">Tüm Salonlar</option>
+                <?php foreach ($salonlar_filtre as $s): ?>
+                  <option value="<?php echo $s['id']; ?>" <?php echo $f_salon_id === (int) $s['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($s['ad']); ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <div class="filtre-grup">
+              <input type="date" name="tarih" value="<?php echo htmlspecialchars($f_tarih); ?>" title="Tarih">
+            </div>
+            <div class="filtre-grup">
+              <select name="saat_id" id="filtreSaatId">
+                <option value="">Tüm Saatler</option>
+                <?php foreach ($saatler_filtre as $sa): ?>
+                  <option value="<?php echo $sa['id']; ?>" <?php echo $f_saat_id === (int) $sa['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars(substr($sa['saat'], 0, 5)); ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <div class="filtre-grup filtre-aksiyon">
+              <button type="submit" class="btn-filtrele">🔍 Filtrele</button>
+              <a href="randevular.php" class="btn-filtre-temizle">Temizle ✕</a>
+            </div>
+          </form>
         </div>
         <div class="panel-body">
           <table class="data-table">

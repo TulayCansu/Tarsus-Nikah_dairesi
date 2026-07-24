@@ -1,18 +1,6 @@
 <?php
-session_start();
+require_once '../../includes/auth.php';
 require_once '../../config/database.php'; // Veritabanı bağlantısı ($pdo)
-
-// Oturum kontrolü
-if (!isset($_SESSION['personel_id'])) {
-    header("Location: ../../auth/login.php");
-    exit();
-}
-
-$personel_id = $_SESSION['personel_id'];
-$mesaj = '';
-$hata = '';
-
-// --- FORM İŞLEMLERİ ---
 
 // 1. ŞİFRE DEĞİŞTİRME İŞLEMİ
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['islem']) && $_POST['islem'] === 'sifre_guncelle') {

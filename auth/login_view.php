@@ -1,6 +1,6 @@
 <?php
-session_start();
-// Zaten giriş yapmışsa doğrudan dashboard'a yönlendir
+require_once '../includes/auth.php';
+
 if (isset($_SESSION['personel_id'])) {
     header('Location: ../pages/dashboard/dashboard.php');
     exit;
