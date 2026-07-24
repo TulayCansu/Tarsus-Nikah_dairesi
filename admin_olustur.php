@@ -1,11 +1,12 @@
 <?php
 require_once 'config/database.php';
 
-$ad = 'Admin';
-$soyad = 'Kullanıcı';
-$kullanici_adi = 'admin';
-$sifre_duz = 'Admin123!';
-$rol = 'admin';
+$ad = 'memur';
+$soyad = 'memur';
+$kullanici_adi = 'memur';
+$sifre_duz = 'memur123!';
+// Geçerli roller: 'admin' | 'personel' (randevu girer/yönetir) | 'nikah_memuru' (sadece kendi günlük programını görür)
+$rol = 'nikah_memuru';
 $aktif = 1;
 
 $sifre_hash = password_hash($sifre_duz, PASSWORD_DEFAULT);
@@ -20,7 +21,7 @@ $stmt->execute([
     'rol' => $rol,
 ]);
 
-echo "Admin hesabı oluşturuldu!<br>";
+echo "Hesap oluşturuldu!<br>";
 echo "Kullanıcı adı: $kullanici_adi<br>";
 echo "Şifre: $sifre_duz<br>";
 echo "Hash: $sifre_hash";
