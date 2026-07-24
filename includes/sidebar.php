@@ -15,6 +15,7 @@ $aktif_klasor = basename(dirname($_SERVER['PHP_SELF']));
     <a href="../randevular/randevular.php" class="<?php echo $aktif_klasor === 'randevular' ? 'active' : ''; ?>">
       <span class="icon">📅</span> Randevular
     </a>
+    <?php if (($_SESSION['rol'] ?? '') === 'admin'): ?>
     <a href="../salonlar/salonlar.php" class="<?php echo $aktif_klasor === 'salonlar' ? 'active' : ''; ?>">
       <span class="icon">🏛️</span> Salonlar
     </a>
@@ -24,15 +25,13 @@ $aktif_klasor = basename(dirname($_SERVER['PHP_SELF']));
     <a href="../raporlar/raporlar.php" class="<?php echo $aktif_klasor === 'raporlar' ? 'active' : ''; ?>">
       <span class="icon">📊</span> Raporlar
     </a>
-   
-    <?php if (($_SESSION['rol'] ?? '') === 'admin'): ?>
     <a href="../loglar/loglar.php" class="<?php echo $aktif_klasor === 'loglar' ? 'active' : ''; ?>">
       <span class="icon">🗂️</span> Loglar
     </a>
+    <?php endif; ?>
     <a href="../ayarlar/ayarlar.php" class="<?php echo $aktif_klasor === 'ayarlar' ? 'active' : ''; ?>">
       <span class="icon">⚙️</span> Ayarlar
     </a>
-    <?php endif; ?>
   </nav>
 
   <div class="sidebar-user">

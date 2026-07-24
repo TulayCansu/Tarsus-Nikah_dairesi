@@ -1,10 +1,7 @@
 <?php
-// 1. VERİTABANI BAĞLANTISI VE OTURUM KONTROLÜ
-require_once '../../config/database.php'; // Kendi bağlantı dosya yolunuza göre düzenleyin
-
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once '../../includes/auth.php';
+yetkiKontrol('admin');
+require_once '../../config/database.php'; 
 
 // 2. AJAX DURUM GÜNCELLEME KONTROLÜ (POST İsteği - $pdo kullanıldı)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'toggle') {
@@ -52,16 +49,13 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Salon Yönetimi - Tarsus Belediyesi</title>
-    <!-- Ortak kullanılan CSS dosyanızın yolu -->
     <link rel="stylesheet" href="../../assets/css/salonlar.css"> 
 </head>
 <body>
 
     <div class="layout">
-        <!-- Personeller sayfasındaki gibi klasör kontrollü modern Sidebar şablonunuz dahil ediliyor -->
         <?php include '../../includes/sidebar.php'; ?>
 
-        <!-- Ana İçerik Alanı -->
         <main class="content-container">
             <header class="content-header">
                 <h2>Salon Yönetimi</h2>

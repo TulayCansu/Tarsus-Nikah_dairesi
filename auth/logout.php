@@ -1,6 +1,5 @@
 <?php
-session_start();
-
+require_once '../includes/auth.php';
 // Oturum kapatma işlemini loglara kaydet (session yok edilmeden önce)
 if (isset($_SESSION['personel_id'])) {
     require_once __DIR__ . '/../config/database.php';
