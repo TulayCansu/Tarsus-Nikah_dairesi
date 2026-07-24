@@ -12,9 +12,11 @@ $aktif_klasor = basename(dirname($_SERVER['PHP_SELF']));
     <a href="../dashboard/dashboard.php" class="<?php echo $aktif_klasor === 'dashboard' ? 'active' : ''; ?>">
       <span class="icon">🏠</span> Anasayfa
     </a>
+    <?php if (in_array($_SESSION['rol'] ?? '', ['admin', 'personel'], true)): ?>
     <a href="../randevular/randevular.php" class="<?php echo $aktif_klasor === 'randevular' ? 'active' : ''; ?>">
       <span class="icon">📅</span> Randevular
     </a>
+    <?php endif; ?>
     <?php if (($_SESSION['rol'] ?? '') === 'admin'): ?>
     <a href="../salonlar/salonlar.php" class="<?php echo $aktif_klasor === 'salonlar' ? 'active' : ''; ?>">
       <span class="icon">🏛️</span> Salonlar

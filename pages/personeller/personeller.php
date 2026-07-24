@@ -111,6 +111,7 @@ try {
                         <option value="">Tümü</option>
                         <option value="admin" <?php echo $rol_filtre === 'admin' ? 'selected' : ''; ?>>Admin</option>
                         <option value="personel" <?php echo $rol_filtre === 'personel' ? 'selected' : ''; ?>>Personel</option>
+                        <option value="nikah_memuru" <?php echo $rol_filtre === 'nikah_memuru' ? 'selected' : ''; ?>>Nikah Memuru</option>
                     </select>
                 </div>
 
