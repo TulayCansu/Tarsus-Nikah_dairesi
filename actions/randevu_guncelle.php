@@ -1,9 +1,8 @@
 <?php
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-require_once __DIR__ . '/../config/database.php';
+require_once '../includes/auth.php';
+yetkiKontrol('admin');
+require_once '/../config/database.php';
 
 function geriDon(string $mesaj, bool $basarili, int $id = 0): void
 {

@@ -1,6 +1,7 @@
 <?php
 
 require_once '../../includes/auth.php';
+yetkiKontrol('admin');
 require_once '../../config/database.php'; 
 
 // --- Durum etiketleri ve renk sınıfları ---
@@ -119,7 +120,7 @@ $salonlar = $pdo->query("SELECT id, ad FROM salonlar WHERE aktif = 1 ORDER BY ad
 $salonlar_filtre = $pdo->query("SELECT id, ad FROM salonlar ORDER BY ad ASC")->fetchAll(PDO::FETCH_ASSOC);
 $saatler_filtre = $pdo->query("SELECT id, saat FROM saatler ORDER BY saat ASC")->fetchAll(PDO::FETCH_ASSOC);
 // Sadece rolü 'personel' olanlar randevu memuru olarak seçilebilir
-$personeller = $pdo->query("SELECT id, ad, soyad FROM personeller WHERE aktif = 1 AND rol = 'personel' ORDER BY ad ASC")->fetchAll(PDO::FETCH_ASSOC);
+$personeller = $pdo->query("SELECT id, ad, soyad FROM personeller WHERE aktif = 1 AND rol = 'nikah_memuru' ORDER BY ad ASC")->fetchAll(PDO::FETCH_ASSOC);
 
 // Saat artık $saatler dizisiyle değil, salon + tarih seçilince AJAX ile anlık getiriliyor.
 // Formun hazır olması için artık sadece salon ve personel bulunması yeterli.
@@ -168,7 +169,6 @@ $tatil_degisken = $pdo->query(
       <div class="uyari-kutu">
         Yeni randevu ekleyebilmek için önce şunların hazır olması gerekiyor:
         <?php if (count($salonlar) === 0): ?> en az bir <a href="../salonlar/salonlar.php">aktif salon</a>,<?php endif; ?>
-        <?php if ($personeller_sayisi === 0): ?> en az bir aktif personel,<?php endif; ?>
         
         Bunlar tamamlanana kadar formdaki "Kaydet" butonu pasif olacak.
       </div>
