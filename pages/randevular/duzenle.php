@@ -1,6 +1,7 @@
 <?php
 
 require_once '../../includes/auth.php';
+yetkiKontrol('admin');
 require_once '../../config/database.php';
 
 $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;

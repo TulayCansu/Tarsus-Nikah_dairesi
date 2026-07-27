@@ -1,5 +1,6 @@
 <?php
 require_once '../includes/auth.php';
+yetkiKontrol('admin');
 require_once '../config/database.php';
 
 header('Content-Type: application/json; charset=utf-8');

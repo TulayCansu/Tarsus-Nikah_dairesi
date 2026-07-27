@@ -1,5 +1,6 @@
 <?php
 require_once '../includes/auth.php';
+yetkiKontrol('admin');
 require_once '../config/database.php';
 
 header('Content-Type: application/json; charset=utf-8');
@@ -27,7 +28,7 @@ $sql = "
     SELECT p.id, p.ad, p.soyad 
     FROM personeller p
     WHERE p.aktif = 1 
-      AND p.rol = 'personel'
+      AND p.rol = 'nikah_memuru'
       AND p.id NOT IN (
           SELECT r.personel_id 
           FROM randevular r
