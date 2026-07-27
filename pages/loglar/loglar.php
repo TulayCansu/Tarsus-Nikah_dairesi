@@ -248,9 +248,7 @@ function filtre_url($ek = []) {
         </div>
 
         <div class="baslik-satiri">
-            <div class="baslik-ikon">🗂️</div>
             <div>
-                <h2>Sistem Logları</h2>
                 <p>Sistemde gerçekleştirilen tüm işlemleri görüntüleyin.</p>
             </div>
             <div class="baslik-butonlar">
