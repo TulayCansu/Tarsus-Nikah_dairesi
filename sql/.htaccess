@@ -1,0 +1,4 @@
+# Bu klasördeki hiçbir dosyaya (özellikle .sql dosyalarına) tarayıcıdan
+# doğrudan erişilemesin. Kök dizindeki .htaccess zaten uzantı bazlı
+# engelliyor; bu, savunmayı ikinci bir katmanla pekiştirir.
+Require all denied

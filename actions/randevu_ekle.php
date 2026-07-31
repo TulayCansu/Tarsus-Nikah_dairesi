@@ -1,7 +1,7 @@
 <?php
 require_once '../includes/auth.php';
-yetkiKontrol('admin');
-require_once '/../config/database.php';
+yetkiKontrol(['admin', 'personel']);
+require_once __DIR__ . '/../config/database.php';
 
 function geriDon(string $mesaj, bool $basarili): void
 {
@@ -17,6 +17,8 @@ if (!isset($_SESSION['personel_id'])) {
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     geriDon('Geçersiz istek.', false);
 }
+
+csrf_dogrula();
 
 // --- Girdileri topla ve temizle ---
 $gelin_adi          = trim($_POST['gelin_adi'] ?? '');
@@ -167,5 +169,8 @@ try {
     if ((int) $e->errorInfo[1] === 1062) {
         geriDon('Bu tarih, saat ve salon için zaten bir randevu var. Lütfen farklı bir saat veya salon seçin.', false);
     }
-    geriDon('Veritabanı hatası: ' . $e->getMessage(), false);
+    // GÜVENLİK: Ham veritabanı hata mesajı (tablo/kolon adları vb. ifşa
+    // edebilir) artık kullanıcıya gösterilmiyor, yalnızca sunucu logunda tutuluyor.
+    error_log('randevu_ekle.php hata: ' . $e->getMessage());
+    geriDon('Randevu kaydedilirken bir hata oluştu. Lütfen tekrar deneyin.', false);
 }

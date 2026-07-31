@@ -1,6 +1,7 @@
 <?php
 
 require_once '../../includes/auth.php';
+yetkiKontrol(['admin', 'personel']);
 require_once '../../config/database.php';
 
 $DURUM_ETIKET = [
@@ -216,6 +217,8 @@ $etiket = $DURUM_ETIKET[$durum_key] ?? ucfirst($durum_key);
 </div>
 
 <script>
+const CSRF_TOKEN = <?php echo json_encode(csrf_token()); ?>;
+
 function randevuIptalEt(id, btn) {
   if (!confirm('Bu randevuyu iptal etmek istediğine emin misin? Bu işlem geri alınamaz.')) return;
 
@@ -223,7 +226,7 @@ function randevuIptalEt(id, btn) {
   fetch('../../actions/randevu_iptal.php', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: 'id=' + encodeURIComponent(id)
+    body: 'id=' + encodeURIComponent(id) + '&csrf_token=' + encodeURIComponent(CSRF_TOKEN)
   })
     .then(res => res.json())
     .then(data => {

@@ -6,7 +6,8 @@ require_once '../../config/database.php';
 // AJAX DURUM GÜNCELLEME KONTROLÜ 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'toggle') {
     header('Content-Type: application/json');
-    
+    csrf_dogrula();
+
     $personelId = isset($_POST['id']) ? intval($_POST['id']) : 0;
     $yeniDurum = isset($_POST['durum']) ? intval($_POST['durum']) : 0;
 
@@ -25,7 +26,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 echo json_encode(['success' => false, 'message' => 'Güncelleme yapılamadı.']);
             }
         } catch (Exception $e) {
-            echo json_encode(['success' => false, 'message' => 'Hata: ' . $e->getMessage()]);
+            error_log('personeller.php toggle hata: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'İşlem sırasında bir hata oluştu.']);
         }
     } else {
         echo json_encode(['success' => false, 'message' => 'Geçersiz personel ID.']);
@@ -74,7 +76,8 @@ try {
     $personeller = $sorgu->fetchAll(PDO::FETCH_ASSOC);
 
 } catch (PDOException $e) {
-    die("Veritabanı hatası: " . $e->getMessage());
+    error_log('personeller.php liste hata: ' . $e->getMessage());
+    die("Personel listesi yüklenirken bir hata oluştu.");
 }
 ?>
 <!DOCTYPE html>
@@ -183,6 +186,7 @@ try {
     </div>
 
     <script>
+    const CSRF_TOKEN = <?php echo json_encode(csrf_token()); ?>;
     document.addEventListener("DOMContentLoaded", () => {
         const statusToggles = document.querySelectorAll(".status-toggle");
 
@@ -196,7 +200,7 @@ try {
                     headers: {
                         "Content-Type": "application/x-www-form-urlencoded",
                     },
-                    body: `action=toggle&id=${personelId}&durum=${yeniDurum}`
+                    body: `action=toggle&id=${personelId}&durum=${yeniDurum}&csrf_token=${encodeURIComponent(CSRF_TOKEN)}`
                 })
                 .then(response => response.json())
                 .then(data => {

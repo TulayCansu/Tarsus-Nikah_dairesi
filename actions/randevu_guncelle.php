@@ -1,8 +1,8 @@
 <?php
 
 require_once '../includes/auth.php';
-yetkiKontrol('admin');
-require_once '/../config/database.php';
+yetkiKontrol(['admin', 'personel']);
+require_once __DIR__ . '/../config/database.php';
 
 function geriDon(string $mesaj, bool $basarili, int $id = 0): void
 {
@@ -22,6 +22,8 @@ if (!isset($_SESSION['personel_id'])) {
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     geriDon('Geçersiz istek.', false);
 }
+
+csrf_dogrula();
 
 $id = (int) ($_POST['id'] ?? 0);
 if ($id <= 0) {
@@ -47,12 +49,12 @@ $gelin_adi    = trim($_POST['gelin_adi'] ?? '');
 $gelin_soyad  = trim($_POST['gelin_soyad'] ?? '');
 $gelin_TC     = trim($_POST['gelin_TC'] ?? '');
 $gelin_tel    = trim($_POST['gelin_tel'] ?? '');
-$gelin_dogum_tarihi = trim($_POST['gelin_dogum_tarihi'] ?? ''); // yalnızca 18 yaş kontrolü için, veritabanına kaydedilmiyor
+$gelin_dogum_tarihi = trim($_POST['gelin_dogum_tarihi'] ?? ''); // 18 yaş kontrolü + kayıt (gelin_dogum_tarihi kolonu)
 $damat_adi    = trim($_POST['damat_adi'] ?? '');
 $damat_soyad  = trim($_POST['damat_soyad'] ?? '');
 $damat_TC     = trim($_POST['damat_TC'] ?? '');
 $damat_tel    = trim($_POST['damat_tel'] ?? '');
-$damat_dogum_tarihi = trim($_POST['damat_dogum_tarihi'] ?? ''); // yalnızca 18 yaş kontrolü için, veritabanına kaydedilmiyor
+$damat_dogum_tarihi = trim($_POST['damat_dogum_tarihi'] ?? ''); // 18 yaş kontrolü + kayıt (damat_dogum_tarihi kolonu)
 $tarih        = trim($_POST['tarih'] ?? '');
 $saat_id      = (int) ($_POST['saat_id'] ?? 0);
 $salon_id     = (int) ($_POST['salon_id'] ?? 0);
@@ -105,7 +107,9 @@ try {
     $stmt = $pdo->prepare("
         UPDATE randevular SET
             gelin_adi = :gelin_adi, gelin_soyad = :gelin_soyad, gelin_TC = :gelin_TC, gelin_tel = :gelin_tel,
+            gelin_dogum_tarihi = :gelin_dogum_tarihi,
             damat_adi = :damat_adi, damat_soyad = :damat_soyad, damat_TC = :damat_TC, damat_tel = :damat_tel,
+            damat_dogum_tarihi = :damat_dogum_tarihi,
             tarih = :tarih, saat_id = :saat_id, salon_id = :salon_id, personel_id = :personel_id,
             durum = :durum, guncelleme_tarihi = NOW(),
             odeme_durumu = :odeme_durumu, odeme_tutari = :odeme_tutari
@@ -113,22 +117,24 @@ try {
     ");
 
     $stmt->execute([
-        'gelin_adi'    => $gelin_adi,
-        'gelin_soyad'  => $gelin_soyad,
-        'gelin_TC'     => $gelin_TC,
-        'gelin_tel'    => $gelin_tel,
-        'damat_adi'    => $damat_adi,
-        'damat_soyad'  => $damat_soyad,
-        'damat_TC'     => $damat_TC,
-        'damat_tel'    => $damat_tel,
-        'tarih'        => $tarih,
-        'saat_id'      => $saat_id,
-        'salon_id'     => $salon_id,
-        'personel_id'  => $personel_id,
-        'durum'        => $durum,
-        'odeme_durumu' => $odeme_durumu,
-        'odeme_tutari' => $odeme_tutari,
-        'id'           => $id,
+        'gelin_adi'          => $gelin_adi,
+        'gelin_soyad'        => $gelin_soyad,
+        'gelin_TC'           => $gelin_TC,
+        'gelin_tel'          => $gelin_tel,
+        'gelin_dogum_tarihi' => $gelin_dogum_tarihi,
+        'damat_adi'          => $damat_adi,
+        'damat_soyad'        => $damat_soyad,
+        'damat_TC'           => $damat_TC,
+        'damat_tel'          => $damat_tel,
+        'damat_dogum_tarihi' => $damat_dogum_tarihi,
+        'tarih'              => $tarih,
+        'saat_id'            => $saat_id,
+        'salon_id'           => $salon_id,
+        'personel_id'        => $personel_id,
+        'durum'              => $durum,
+        'odeme_durumu'       => $odeme_durumu,
+        'odeme_tutari'       => $odeme_tutari,
+        'id'                 => $id,
     ]);
 
     $log = $pdo->prepare('INSERT INTO loglar (personel_id, islem, tarih, ip) VALUES (:pid, :islem, NOW(), :ip)');
@@ -144,5 +150,6 @@ try {
     if ((int) $e->errorInfo[1] === 1062) {
         geriDon('Bu tarih, saat ve salon için zaten bir randevu var.', false, $id);
     }
-    geriDon('Veritabanı hatası: ' . $e->getMessage(), false, $id);
+    error_log('randevu_guncelle.php hata: ' . $e->getMessage());
+    geriDon('Randevu güncellenirken bir hata oluştu. Lütfen tekrar deneyin.', false, $id);
 }

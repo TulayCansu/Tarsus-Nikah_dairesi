@@ -1,6 +1,7 @@
 <?php
 
 require_once '../../includes/auth.php';
+checkLogin();
 require_once '../../config/database.php'; //
 
 $rol = $_SESSION['rol'] ?? '';
@@ -15,12 +16,15 @@ $DURUM_ETIKET = [
 if ($rol === 'nikah_memuru') {
 
     // --- PERSONEL: sadece kendi bugünkü programı ---
+    // Not: randevular.adres diye bir kolon veritabanında yok (salon_id
+    // zaten NOT NULL olduğu için her randevunun bir salonu var); bu
+    // yüzden var olmayan kolonu artık sorgulamıyoruz.
     $stmt = $pdo->prepare("
         SELECT r.gelin_adi, r.gelin_soyad, r.damat_adi, r.damat_soyad,
-               s.saat, sal.ad AS salon_adi, r.adres, r.durum
+               s.saat, sal.ad AS salon_adi, r.durum
         FROM randevular r
         JOIN saatler s ON r.saat_id = s.id
-        LEFT JOIN salonlar sal ON r.salon_id = sal.id
+        JOIN salonlar sal ON r.salon_id = sal.id
         WHERE r.personel_id = :pid AND r.tarih = CURDATE()
         ORDER BY s.saat ASC
     ");
@@ -113,7 +117,7 @@ if ($rol === 'nikah_memuru') {
             <?php foreach ($bugunku_program as $p): ?>
               <?php
                 $iptal_mi = $p['durum'] === 'iptal';
-                $yer = $p['salon_adi'] !== null ? $p['salon_adi'] : $p['adres'];
+                $yer = $p['salon_adi'];
               ?>
               <div class="program-item <?php echo $iptal_mi ? 'iptal' : ''; ?>">
                 <div class="program-saat"><?php echo htmlspecialchars(substr($p['saat'], 0, 5)); ?></div>

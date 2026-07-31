@@ -40,6 +40,7 @@ unset($_SESSION['giris_hata']);
       <?php endif; ?>
 
       <form action="login.php" method="POST" novalidate>
+      <?php echo csrf_alani(); ?>
         <div class="field">
           <input type="text" id="username" name="kullanici_adi" placeholder="Kullanıcı adı" autocomplete="username" required>
         </div>

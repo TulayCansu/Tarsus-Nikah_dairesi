@@ -1,9 +1,12 @@
 <?php
 require_once '../../includes/auth.php';
+checkLogin();
 require_once '../../config/database.php'; // Veritabanı bağlantısı ($pdo)
 
 // 1. ŞİFRE DEĞİŞTİRME İŞLEMİ
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['islem']) && $_POST['islem'] === 'sifre_guncelle') {
+    csrf_dogrula();
+
     $mevcut_sifre = $_POST['mevcut_sifre'] ?? '';
     $yeni_sifre = $_POST['yeni_sifre'] ?? '';
     $yeni_sifre_tekrar = $_POST['yeni_sifre_tekrar'] ?? '';
@@ -12,15 +15,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['islem']) && $_POST['i
         $hata = 'Lütfen tüm alanları doldurun.';
     } elseif ($yeni_sifre !== $yeni_sifre_tekrar) {
         $hata = 'Yeni şifreler birbiriyle uyuşmuyor.';
+    } elseif (mb_strlen($yeni_sifre) < 8) {
+        $hata = 'Yeni şifre en az 8 karakter olmalıdır.';
     } else {
-        $stmt = $pdo->prepare("SELECT sifre FROM personeller WHERE id = ?");
-        $stmt->execute([$personel_id]);
+        $stmt = $pdo->prepare('SELECT sifre FROM personeller WHERE id = ?');
+        $stmt->execute([$_SESSION['personel_id']]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($user && password_verify($mevcut_sifre, $user['sifre'])) {
             $yeni_hash = password_hash($yeni_sifre, PASSWORD_DEFAULT);
-            $update = $pdo->prepare("UPDATE personeller SET sifre = ? WHERE id = ?");
-            $update->execute([$yeni_hash, $personel_id]);
+            $update = $pdo->prepare('UPDATE personeller SET sifre = ? WHERE id = ?');
+            $update->execute([$yeni_hash, $_SESSION['personel_id']]);
             $mesaj = 'Şifreniz başarıyla güncellendi.';
         } else {
             $hata = 'Mevcut şifreniz hatalı.';
@@ -30,6 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['islem']) && $_POST['i
 
 // 2. SALON MESAİ / RANDEVU SAATLERİ GÜNCELLEME (Sadece Admin)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['islem']) && $_POST['islem'] === 'saat_guncelle') {
+    csrf_dogrula();
     if (($_SESSION['rol'] ?? '') === 'admin') {
         $secili_salon_id = intval($_POST['salon_id'] ?? 0);
         $secili_saat_idleri = $_POST['saatler'] ?? []; // İşaretlenen saat_id listesi
@@ -53,7 +59,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['islem']) && $_POST['i
                 $mesaj = 'Salon randevu saatleri başarıyla güncellendi.';
             } catch (Exception $e) {
                 $pdo->rollBack();
-                $hata = 'Saatler güncellenirken hata oluştu: ' . $e->getMessage();
+                error_log('ayarlar.php saat_guncelle hata: ' . $e->getMessage());
+                $hata = 'Saatler güncellenirken bir hata oluştu. Lütfen tekrar deneyin.';
             }
         } else {
             $hata = 'Lütfen geçerli bir salon seçin.';
@@ -125,6 +132,7 @@ foreach ($tum_saatler as $st) {
                     <p>Hesap güvenliğiniz için şifrenizi buradan güncelleyebilirsiniz.</p>
                 </div>
                 <form action="" method="POST" class="settings-form">
+                    <?php echo csrf_alani(); ?>
                     <input type="hidden" name="islem" value="sifre_guncelle">
                     
                     <div class="form-group">
@@ -160,6 +168,7 @@ foreach ($tum_saatler as $st) {
                 </div>
 
                 <form action="" method="POST" class="settings-form">
+                    <?php echo csrf_alani(); ?>
                     <input type="hidden" name="islem" value="saat_guncelle">
 
                     <!-- Salon Seçim Sekmeleri (Pills) -->

@@ -1,0 +1,19 @@
+# Dizin listelemeyi kapat (ör. /assets/img/ açılınca içerik listelenmesin)
+Options -Indexes
+
+# .git klasörünü ve içeriğini dışarıdan tamamen erişilemez yap.
+# (En doğrusu .git klasörünü zaten sunucuya hiç yüklememek; bu kural
+# sadece ek bir güvenlik katmanı.)
+RedirectMatch 404 /\.git
+
+# .sql, .md, .env, .log, .gitignore gibi kaynak/yedek dosyalarının
+# tarayıcıdan doğrudan indirilmesini engelle (ör. sql/nikah_randevu.sql
+# içinde TC kimlik no kolonları dahil tüm şema görünür olurdu).
+<FilesMatch "\.(sql|md|log|env|gitignore|bak|sqlite)$">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^\.git/ - [F,L]
+</IfModule>
