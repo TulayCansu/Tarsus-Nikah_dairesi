@@ -210,7 +210,8 @@ try {
     $kayitlar = $liste_stmt->fetchAll(PDO::FETCH_ASSOC);
 
 } catch (PDOException $e) {
-    die("Veritabanı hatası: " . $e->getMessage());
+    error_log('loglar.php hata: ' . $e->getMessage());
+    die("Loglar yüklenirken bir hata oluştu.");
 }
 
 // Aktif filtreleri URL için koru (pagination/sıralama linklerinde)

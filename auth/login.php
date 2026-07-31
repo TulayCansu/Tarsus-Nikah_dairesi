@@ -1,11 +1,18 @@
 <?php
-session_start();
+// Not: Daha önce burada doğrudan session_start() çağrılıyordu; bu, login
+// isteğinin oturum çerezinin includes/auth.php içindeki güvenli ayarları
+// (httponly/samesite/secure) almadan oluşturulmasına neden oluyordu.
+// includes/auth.php üzerinden geçerek tüm giriş noktalarında tutarlı ve
+// güvenli oturum ayarları sağlanır.
+require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../config/database.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: login_view.php');
     exit;
 }
+
+csrf_dogrula();
 
 $kullanici_adi = trim($_POST['kullanici_adi'] ?? '');
 $sifre = $_POST['sifre'] ?? '';
@@ -38,6 +45,7 @@ $_SESSION['personel_id'] = $personel['id'];
 $_SESSION['ad'] = $personel['ad'];
 $_SESSION['soyad'] = $personel['soyad'];
 $_SESSION['rol'] = $personel['rol'];
+$_SESSION['is_active'] = $personel['aktif'];   
 
 // Log kaydı
 $log = $pdo->prepare('INSERT INTO loglar (personel_id, islem, tarih, ip) VALUES (:pid, :islem, NOW(), :ip)');

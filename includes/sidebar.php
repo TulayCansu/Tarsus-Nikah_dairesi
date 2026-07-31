@@ -1,5 +1,5 @@
 <?php 
-require_once 'auth.php';
+require_once __DIR__ . '/auth.php';
 $aktif_sayfa = basename($_SERVER['PHP_SELF']);
 $aktif_klasor = basename(dirname($_SERVER['PHP_SELF']));
 ?>

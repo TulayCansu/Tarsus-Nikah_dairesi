@@ -1,7 +1,7 @@
 <?php
 
 require_once '../../includes/auth.php';
-yetkiKontrol('admin');
+yetkiKontrol(['admin', 'personel']);
 require_once '../../config/database.php';
 
 $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
@@ -61,6 +61,7 @@ $damat_dogum_tarihi = !empty($randevu['damat_dogum_tarihi']) ? $randevu['damat_d
       </div>
       <div class="panel-body dolgu">
         <form action="../../actions/randevu_guncelle.php" method="POST">
+          <?php echo csrf_alani(); ?>
           <input type="hidden" name="id" id="randevu_id" value="<?php echo $randevu['id']; ?>">
 
           <div class="form-bolum">
@@ -146,7 +147,7 @@ $damat_dogum_tarihi = !empty($randevu['damat_dogum_tarihi']) ? $randevu['damat_d
                 <label for="tarih_goster">Tarih</label>
                 <div class="tarih-secici" id="tarihSecici">
                   <input type="text" id="tarih_goster" class="tarih-goster" placeholder="Tarih seçin" autocomplete="off" readonly required>
-                  <input type="hidden" id="tarih" name="tarih" value="<?php echo $randevu['tarih']; ?>">
+                  <input type="hidden" id="tarih" name="tarih" value="<?php echo htmlspecialchars($randevu['tarih']); ?>">
                   <div class="takvim-kutu" id="takvimKutu" style="display:none;">
                     <div class="takvim-header">
                       <button type="button" class="takvim-nav" id="takvimOnceki">‹</button>

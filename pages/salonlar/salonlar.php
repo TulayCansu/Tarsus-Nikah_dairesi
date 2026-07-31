@@ -6,6 +6,7 @@ require_once '../../config/database.php';
 // 2. AJAX DURUM GÜNCELLEME KONTROLÜ (POST İsteği - $pdo kullanıldı)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'toggle') {
     header('Content-Type: application/json');
+    csrf_dogrula();
     
     $salonId = isset($_POST['id']) ? intval($_POST['id']) : 0;
     $yeniDurum = isset($_POST['durum']) ? intval($_POST['durum']) : 0; // 1 veya 0
@@ -25,7 +26,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 echo json_encode(['success' => false, 'message' => 'Güncelleme yapılamadı.']);
             }
         } catch (Exception $e) {
-            echo json_encode(['success' => false, 'message' => 'Hata: ' . $e->getMessage()]);
+            error_log('salonlar.php toggle hata: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'İşlem sırasında bir hata oluştu.']);
         }
     } else {
         echo json_encode(['success' => false, 'message' => 'Geçersiz salon ID.']);
@@ -40,7 +42,8 @@ try {
     $salonlar = $sorgu->fetchAll(PDO::FETCH_ASSOC);
 
 } catch (PDOException $e) {
-    die("Veritabanı hatası: " . $e->getMessage());
+    error_log('salonlar.php liste hata: ' . $e->getMessage());
+    die("Salon listesi yüklenirken bir hata oluştu.");
 }
 ?>
 <!DOCTYPE html>
@@ -116,6 +119,7 @@ try {
 
     <!-- AJAX İşlemleri İçin JavaScript Kodları -->
     <script>
+    const CSRF_TOKEN = <?php echo json_encode(csrf_token()); ?>;
     document.addEventListener("DOMContentLoaded", () => {
         const statusToggles = document.querySelectorAll(".status-toggle");
 
@@ -130,7 +134,7 @@ try {
                     headers: {
                         "Content-Type": "application/x-www-form-urlencoded",
                     },
-                    body: `action=toggle&id=${salonId}&durum=${yeniDurum}`
+                    body: `action=toggle&id=${salonId}&durum=${yeniDurum}&csrf_token=${encodeURIComponent(CSRF_TOKEN)}`
                 })
                 .then(response => response.json())
                 .then(data => {

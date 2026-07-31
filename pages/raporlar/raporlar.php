@@ -20,7 +20,7 @@ if (!empty($baslangic) && !empty($bitis)) {
 // İstatistik Kartları Verisi
 $kart_sorgu = "SELECT 
     SUM(CASE WHEN odeme_durumu = 'ödendi' THEN odeme_tutari ELSE 0 END) AS toplam_gelir,
-    SUM(CASE WHEN durum = 'kıyıldı' THEN 1 ELSE 0 END) AS kiyilan_nikah,
+    SUM(CASE WHEN durum = 'tamamlandi' THEN 1 ELSE 0 END) AS kiyilan_nikah,
     SUM(CASE WHEN odeme_durumu = 'ödenmedi' THEN odeme_tutari ELSE 0 END) AS beklenen_odeme,
     SUM(CASE WHEN durum = 'bekliyor' THEN 1 ELSE 0 END) AS bekleyen_nikah,
     SUM(CASE WHEN durum = 'iptal' THEN 1 ELSE 0 END) AS iptal_edilen_nikah
@@ -55,7 +55,7 @@ $personel_verileri = $stmt->fetchAll(PDO::FETCH_ASSOC);
 // Sorunlu / Tarihi Geçen Randevular
 $gecmis_sorgu = "SELECT r.id, r.gelin_adi, r.gelin_soyad, r.damat_adi, r.damat_soyad, r.tarih, r.durum
 FROM randevular r
-WHERE r.tarih < CURDATE() AND r.durum NOT IN ('kıyıldı', 'iptal')" . str_replace('tarih', 'r.tarih', $tarih_kosulu);
+WHERE r.tarih < CURDATE() AND r.durum NOT IN ('tamamlandi', 'iptal')" . str_replace('tarih', 'r.tarih', $tarih_kosulu);
 
 $stmt = $pdo->prepare($gecmis_sorgu);
 $stmt->execute($params);

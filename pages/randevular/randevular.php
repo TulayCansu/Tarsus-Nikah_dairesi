@@ -1,7 +1,7 @@
 <?php
 
 require_once '../../includes/auth.php';
-yetkiKontrol('admin');
+yetkiKontrol(['admin', 'personel']);
 require_once '../../config/database.php'; 
 
 // --- Durum etiketleri ve renk sınıfları ---
@@ -85,6 +85,17 @@ $where_sql = count($kosullar) > 0 ? ('WHERE ' . implode(' AND ', $kosullar)) : '
 // --- İstatistik kartları (filtreden bağımsız, genel durum) ---
 $toplam_randevu = (int) $pdo->query("SELECT COUNT(*) FROM randevular")->fetchColumn();
 
+// Sayfalama, filtre uygulandığında FİLTRELENMİŞ toplam üzerinden hesaplanmalı;
+// aksi halde (aşağıdaki listeleme sorgusu filtreliyken) sayfa sayısı filtresiz
+// toplam kayıt sayısına göre hesaplanmış olurdu.
+if ($filtre_aktif) {
+    $sayim_stmt = $pdo->prepare("SELECT COUNT(*) FROM randevular r $where_sql");
+    $sayim_stmt->execute($parametreler);
+    $filtrelenmis_toplam = (int) $sayim_stmt->fetchColumn();
+} else {
+    $filtrelenmis_toplam = $toplam_randevu;
+}
+
 $bu_ayki_randevu = (int) $pdo->query(
     "SELECT COUNT(*) FROM randevular WHERE MONTH(tarih) = MONTH(CURDATE()) AND YEAR(tarih) = YEAR(CURDATE())"
 )->fetchColumn();
@@ -104,15 +115,16 @@ $stmt = $pdo->prepare("
     FROM randevular r
     JOIN salonlar sal ON r.salon_id = sal.id
     JOIN saatler sa ON r.saat_id = sa.id
+    $where_sql
     ORDER BY r.tarih DESC, sa.saat DESC
     LIMIT :limit OFFSET :offset
 ");
 $stmt->bindValue(':limit', $sayfa_basi, PDO::PARAM_INT);
 $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-$stmt->execute();
+$stmt->execute($parametreler);
 $randevular = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-$toplam_sayfa = max(1, (int) ceil($toplam_randevu / $sayfa_basi));
+$toplam_sayfa = max(1, (int) ceil($filtrelenmis_toplam / $sayfa_basi));
 
 // --- Form için gerekli seçenekler ---
 $salonlar = $pdo->query("SELECT id, ad FROM salonlar WHERE aktif = 1 ORDER BY ad ASC")->fetchAll(PDO::FETCH_ASSOC);
@@ -295,14 +307,15 @@ $tatil_degisken = $pdo->query(
           </table>
 
           <div class="sayfalama-satiri">
-            <span>Toplam <?php echo $toplam_randevu; ?> kayıttan
-              <?php echo $toplam_randevu === 0 ? 0 : $offset + 1; ?>–<?php echo min($offset + $sayfa_basi, $toplam_randevu); ?> arası gösteriliyor.</span>
+            <span>Toplam <?php echo $filtrelenmis_toplam; ?> kayıttan
+              <?php echo $filtrelenmis_toplam === 0 ? 0 : $offset + 1; ?>–<?php echo min($offset + $sayfa_basi, $filtrelenmis_toplam); ?> arası gösteriliyor.</span>
+            <?php $filtre_ek = $filtre_query_string !== '' ? '&' . $filtre_query_string : ''; ?>
             <div class="sayfalama">
-              <a class="<?php echo $sayfa <= 1 ? 'devre-disi' : ''; ?>" href="?sayfa=<?php echo max(1, $sayfa - 1); ?>">‹</a>
+              <a class="<?php echo $sayfa <= 1 ? 'devre-disi' : ''; ?>" href="?sayfa=<?php echo max(1, $sayfa - 1) . $filtre_ek; ?>">‹</a>
               <?php for ($i = 1; $i <= $toplam_sayfa; $i++): ?>
-                <a class="<?php echo $i === $sayfa ? 'aktif' : ''; ?>" href="?sayfa=<?php echo $i; ?>"><?php echo $i; ?></a>
+                <a class="<?php echo $i === $sayfa ? 'aktif' : ''; ?>" href="?sayfa=<?php echo $i . $filtre_ek; ?>"><?php echo $i; ?></a>
               <?php endfor; ?>
-              <a class="<?php echo $sayfa >= $toplam_sayfa ? 'devre-disi' : ''; ?>" href="?sayfa=<?php echo min($toplam_sayfa, $sayfa + 1); ?>">›</a>
+              <a class="<?php echo $sayfa >= $toplam_sayfa ? 'devre-disi' : ''; ?>" href="?sayfa=<?php echo min($toplam_sayfa, $sayfa + 1) . $filtre_ek; ?>">›</a>
             </div>
           </div>
         </div>
@@ -315,6 +328,7 @@ $tatil_degisken = $pdo->query(
         </div>
         <div class="panel-body dolgu">
           <form action="../../actions/randevu_ekle.php" method="POST">
+            <?php echo csrf_alani(); ?>
 
             <div class="form-bolum">
               <div class="form-bolum-baslik">Gelin Bilgileri</div>
@@ -468,6 +482,7 @@ $tatil_degisken = $pdo->query(
 </div>
 
 <script>
+const CSRF_TOKEN = <?php echo json_encode(csrf_token()); ?>;
 const TATIL_DEGISKEN = <?php echo json_encode($tatil_degisken, JSON_UNESCAPED_UNICODE); ?>;
 const TATIL_SABIT = <?php echo json_encode($tatil_sabit, JSON_UNESCAPED_UNICODE); ?>;
 const AY_ADLARI = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
@@ -718,7 +733,7 @@ function randevuIptalEt(id, btn) {
   fetch('../../actions/randevu_iptal.php', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: 'id=' + encodeURIComponent(id)
+    body: 'id=' + encodeURIComponent(id) + '&csrf_token=' + encodeURIComponent(CSRF_TOKEN)
   })
     .then(res => res.json())
     .then(data => {

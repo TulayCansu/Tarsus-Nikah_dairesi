@@ -1,8 +1,8 @@
 <?php
 
 require_once '../includes/auth.php';
-yetkiKontrol('admin');
-require_once '/../config/database.php';
+yetkiKontrol(['admin', 'personel']);
+require_once __DIR__ . '/../config/database.php';
 
 header('Content-Type: application/json');
 
@@ -15,6 +15,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['success' => false, 'message' => 'Geçersiz istek.']);
     exit;
 }
+
+csrf_dogrula();
 
 $id = isset($_POST['id']) ? (int) $_POST['id'] : 0;
 
@@ -61,5 +63,6 @@ try {
     echo json_encode(['success' => true, 'message' => 'Randevu iptal edildi.']);
 
 } catch (PDOException $e) {
-    echo json_encode(['success' => false, 'message' => 'Veritabanı hatası: ' . $e->getMessage()]);
+    error_log('randevu_iptal.php hata: ' . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'İşlem sırasında bir hata oluştu.']);
 }

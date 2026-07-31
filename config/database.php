@@ -14,7 +14,10 @@ try {
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
     
 } catch (PDOException $e) {
-    
-    die("Veri tabanı bağlantı hatası: " . $e->getMessage());
+
+    // GÜVENLİK: Ham bağlantı hatası (sunucu adı, veritabanı adı gibi bilgiler
+    // içerebilir) artık ekrana basılmıyor, sadece sunucu log kaydına yazılıyor.
+    error_log('Veritabanı bağlantı hatası: ' . $e->getMessage());
+    die("Veri tabanına şu anda ulaşılamıyor. Lütfen daha sonra tekrar deneyin.");
 }
 ?>
